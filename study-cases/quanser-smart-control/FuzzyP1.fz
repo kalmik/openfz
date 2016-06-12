@@ -1,0 +1,32 @@
+[System]
+Name='FuzzyP1'
+Type='sugeno'
+Version=2.0
+NumInputs=1
+NumOutputs=1
+NumRules=3
+AndMethod='min'
+OrMethod='max'
+ImpMethod='min'
+AggMethod='max'
+DefuzzMethod='wtaver'
+
+[Input1]
+Name='Entrada_0'
+Range=[-30 30]
+NumMFs=3
+MF1='EN':'trapmf',[-31 -30 -5 0]
+MF2='EP':'trapmf',[0 5 30 31]
+MF3='ZZ':'trimf',[-5 0 5]
+
+[Output1]
+Name='Saída_0'
+Range=[0 1]
+NumMFs=2
+MF1='P1':'linear',[4 0]
+MF2='P2':'linear',[2 0]
+
+[Rules]
+1, 1 (1) : 2
+2, 1 (1) : 2
+3, 2 (1) : 2

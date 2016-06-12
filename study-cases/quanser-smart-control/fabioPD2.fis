@@ -1,0 +1,57 @@
+[System]
+Name='fabioPD2'
+Type='sugeno'
+Version=2.0
+NumInputs=2
+NumOutputs=1
+NumRules=15
+AndMethod='prod'
+OrMethod='probor'
+ImpMethod='prod'
+AggMethod='sum'
+DefuzzMethod='wtaver'
+
+[Input1]
+Name='erro'
+Range=[-30 30]
+NumMFs=5
+MF1='NG':'trimf',[-3000 -20 -15]
+MF2='NP':'trimf',[-20 -11 -1]
+MF3='PP':'trimf',[1 11 20]
+MF4='PG':'trimf',[15 20 3000]
+MF5='Z':'trimf',[-3 0 3]
+
+[Input2]
+Name='variacErro'
+Range=[-1 1]
+NumMFs=3
+MF1='negativa':'trimf',[-300.2 -0.7 -0.1]
+MF2='zero':'trimf',[-0.2 0 0.2]
+MF3='positiva':'trimf',[0.1 0.7 300.1]
+
+[Output1]
+Name='tensao'
+Range=[0 1]
+NumMFs=5
+MF1='GR':'linear',[1.5 4 0]
+MF2='PR':'linear',[2.1 4.2 0]
+MF3='Z':'linear',[1.7 1.3 2]
+MF4='PA':'linear',[2 5.2 0]
+MF5='GA':'linear',[2.2 3 0]
+
+[Rules]
+1 1, 2 (1) : 1
+1 2, 1 (1) : 1
+1 3, 1 (1) : 1
+2 1, 3 (1) : 1
+2 2, 2 (1) : 1
+2 3, 2 (1) : 1
+5 1, 3 (1) : 1
+5 2, 3 (1) : 1
+5 3, 3 (1) : 1
+3 1, 3 (1) : 1
+3 2, 4 (1) : 1
+3 3, 4 (1) : 1
+4 1, 4 (1) : 1
+4 2, 5 (1) : 1
+4 3, 5 (1) : 1

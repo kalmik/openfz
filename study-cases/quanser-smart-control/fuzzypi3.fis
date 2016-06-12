@@ -1,0 +1,57 @@
+[System]
+Name='fuzzypi3'
+Type='sugeno'
+Version=2.0
+NumInputs=2
+NumOutputs=1
+NumRules=15
+AndMethod='prod'
+OrMethod='probor'
+ImpMethod='prod'
+AggMethod='sum'
+DefuzzMethod='wtaver'
+
+[Input1]
+Name='Erro'
+Range=[-31 31]
+NumMFs=5
+MF1='ENG':'trimf',[-3000 -16 -10]
+MF2='EZ':'trimf',[-1 2 3]
+MF3='EPG':'trimf',[8 15 30000]
+MF4='ENP':'trimf',[-15 -6 0]
+MF5='EPP':'trimf',[2 6 10]
+
+[Input2]
+Name='Verro'
+Range=[-1 1]
+NumMFs=3
+MF1='VEN':'trimf',[-10000 -0.5 -0.1]
+MF2='VEZ':'trimf',[-0.2 0 0.2]
+MF3='VEP':'trimf',[0.1 0.4 10000]
+
+[Output1]
+Name='output1'
+Range=[0 1]
+NumMFs=5
+MF1='Z':'linear',[0.001 0.1 0]
+MF2='P':'linear',[0.015 0.2 0]
+MF3='M':'linear',[0.012 0.15 0]
+MF4='G':'linear',[0.015 0.4 0]
+MF5='-P':'linear',[0.01 0.3 0]
+
+[Rules]
+1 1, 4 (1) : 1
+1 2, 3 (1) : 1
+1 3, 4 (1) : 1
+4 1, 3 (1) : 1
+4 2, 2 (1) : 1
+4 3, 3 (1) : 1
+2 1, 2 (1) : 1
+2 2, 1 (1) : 1
+2 3, 5 (1) : 1
+5 1, 3 (1) : 1
+5 2, 2 (1) : 1
+5 3, 3 (1) : 1
+3 1, 4 (1) : 1
+3 2, 3 (1) : 1
+3 3, 4 (1) : 1

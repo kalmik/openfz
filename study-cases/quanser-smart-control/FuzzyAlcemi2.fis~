@@ -1,0 +1,51 @@
+[System]
+Name='FuzzyAlcemi2'
+Type='sugeno'
+Version=2.0
+NumInputs=2
+NumOutputs=1
+NumRules=9
+AndMethod='min'
+OrMethod='max'
+ImpMethod='min'
+AggMethod='max'
+DefuzzMethod='wtaver'
+
+[Input1]
+Name='Entrada_0'
+Range=[-32 100]
+NumMFs=3
+MF1='EN':'trimf',[-30000 -26.075 -15.954]
+MF2='EZ':'trimf',[-32.542 -0.371 64.61]
+MF3='EP':'trimf',[23.023 93.668 30000]
+
+[Input2]
+Name='Entrada_1'
+Range=[-3 3]
+NumMFs=3
+MF1='DEN':'trimf',[-1000 -2.263 -1.143]
+MF2='DEZ':'trimf',[-1.43 -1.111 -0.027]
+MF3='DEP':'trimf',[-1.337 0.815 1000]
+
+[Output1]
+Name='Saída_0'
+Range=[0 1]
+NumMFs=7
+MF1='TNG':'linear',[0.00253 0.32487 0]
+MF2='TNM':'linear',[0.03693 0.47279 0]
+MF3='TNP':'linear',[0.03747 0.66286 0]
+MF4='TZ':'linear',[0.03634 0.81698 0]
+MF5='TPP':'linear',[0.04843 1.02485 0]
+MF6='TPM':'linear',[0.07179 0.94323 0]
+MF7='TPG':'linear',[0.08829 0.97121 0]
+
+[Rules]
+1 1, 3 (1) : 1
+1 2, 2 (1) : 1
+1 3, 1 (1) : 1
+2 1, 4 (1) : 1
+2 2, 4 (1) : 1
+2 3, 4 (1) : 1
+3 1, 5 (1) : 1
+3 2, 6 (1) : 1
+3 3, 7 (1) : 1
