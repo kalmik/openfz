@@ -8,6 +8,8 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <time.h>
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -71,7 +73,7 @@ FZ_M_POOL* load_fis (char* cmd);
 int main(int argc, char* argv[])
 {	
 	int CPU_QTY = sysconf(_SC_NPROCESSORS_ONLN);
-	// signal(SIGINT, sigint_handler);
+	signal(SIGINT, sigint_handler);
 	int* cli_status = malloc(sizeof(int));
 	*cli_status = 0;
 	printf("%s\n", banner());
@@ -153,16 +155,13 @@ void logger (int type, char* msg)
 
 void prompt ()
 {
+	/* FIXME: Get current stdin buffer */
 	printf("\rOpenFZ > ");
 	fflush(stdout);
 
 }
 
-/* @openfz_cli
- * This function will handle
- *
- *
- */
+/* @openfz_cli */
 void* openfz_cli (void* arg)
 {
 	pthread_t fuzzy_slots[CPU_QTY];
@@ -212,10 +211,11 @@ void* openfz_cli (void* arg)
 	pthread_exit((void*)status);
 }
 
-FZ_M_POOL* load_fis (char* cmd) {
+FZ_M_POOL* load_fis (char* cmd)
+{
 	int* status;
 	char path[100];
-	int path_fz;
+	int path_fz, i;
 	char log[400];
 	FILE* fp;
 
@@ -255,12 +255,12 @@ FZ_M_POOL* load_fis (char* cmd) {
 	logger(LOG, log);
 
 	mpool->inputRange = (float**)malloc(sizeof(float*)*mpool->numInputs);
-	for(int i = 0; i < mpool->numInputs; i++){
+	for(i = 0; i < mpool->numInputs; i++){
 		mpool->inputRange[i] = load_input(fp, NULL);
 	}
 
 	mpool->outputRange = (float**)malloc(sizeof(float*)*mpool->numOutputs);
-	for(int i = 0; i < mpool->numOutputs; i++)
+	for(i = 0; i < mpool->numOutputs; i++)
 		mpool->outputRange[i] = load_output(fp, NULL);
 
 	mpool->rules = load_rules(fp, mpool->numInputs, mpool->numOutputs, mpool->numRules, NULL);
@@ -273,7 +273,8 @@ FZ_M_POOL* load_fis (char* cmd) {
 	return mpool;
 }
 
-double* eval_fis(FZ_M_POOL* mpool, double* in){
+double* eval_fis(FZ_M_POOL* mpool, double* in)
+{
 
 	int i, j, k, jump, cur_MF_sz;
 	float* cur_MF;
@@ -367,14 +368,25 @@ void* runtime (void* arg) {
 	char* cmd = (char*) arg;
 	char log[100];
 	int i;
+	int my_slot = NEXT_SLOT;
 
 	double* out;
 	double* in;
 
-	sprintf(log, "The System is trying to run on slot %i", NEXT_SLOT);
+	/* Socket variables */
+	int sockfd, client_sockfd;
+	int len, client_len;
+	struct sockaddr_in address;
+	struct sockaddr_in client_address;
+	int result;
+	int socket_message_len;
+	char* socket_message;
+
+	/* Fuzzy loading */
+	sprintf(log, "The System is trying to run on slot %i", my_slot);
 	logger(LOG, log);
 
-	sprintf(log, "The System is ready on slot %i", NEXT_SLOT);
+	sprintf(log, "The System is ready on slot %i", my_slot);
 	pthread_mutex_lock(&new_fuzzy_mtx);
 	NEXT_SLOT++;
 	pthread_mutex_unlock(&new_fuzzy_mtx);
@@ -384,13 +396,30 @@ void* runtime (void* arg) {
 
 	out = (double*) malloc(sizeof(double)*mpool->numOutputs);
     in = (double*) malloc(sizeof(double)*mpool->numInputs);
+    /* end loading */
 
-    srand(time(NULL));
+    /* Socket creating */
+    socket_message_len = 1024;
+    socket_message = (char*) malloc(sizeof(char)*socket_message_len);
+
+    sockfd  = socket(AF_INET, SOCK_STREAM,0);
+	address.sin_family = AF_INET;
+	address.sin_addr.s_addr = inet_addr("127.0.0.1");
+	address.sin_port = 3000 + my_slot;
+	len = sizeof(address);
+	bind(sockfd, (struct sockaddr *) &address, len);
+  	listen(sockfd, 5);
+  	sprintf(log, "This fuzzy machine is bond to port %i", address.sin_port);
+  	logger(INFO, log);
+	/* socket created */
 
 	while(1) {
-		sleep(2);
-		in[0] = rand()%1001/1000.0;
-	    in[1] = rand()%1001/1000.0;
+		logger(INFO, "Waiting data...");
+		client_sockfd = accept(sockfd, (struct sockaddr *) &client_address, &client_len);
+		read(client_sockfd, socket_message, socket_message_len);
+		for(i = 0; i < mpool->numInputs; i++) {
+			sscanf(socket_message, "%lf ", &in[i]);
+		}
 
 	    out = eval_fis(mpool, in);
 
@@ -398,9 +427,15 @@ void* runtime (void* arg) {
 	    logger(LOG, log);
 	    for (i = 0; i < mpool->numOutputs; i++) {
 	    	sprintf(log, "<%s> Output[%i] %.3f", mpool->name, i, out[i]);
+	    	write(client_sockfd, log, socket_message_len);
 	    	logger(LOG, log);
 	    }
+	    close(client_sockfd);
 	}
+
+	free(socket_message);
+	free(mpool);
+	close(sockfd);
 }
 
 /*
