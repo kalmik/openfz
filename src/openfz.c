@@ -72,7 +72,7 @@ FZ_M_POOL* load_fis (char* cmd);
 
 int main(int argc, char* argv[])
 {	
-	int CPU_QTY = sysconf(_SC_NPROCESSORS_ONLN);
+	CPU_QTY = sysconf(_SC_NPROCESSORS_ONLN);
 	signal(SIGINT, sigint_handler);
 	int* cli_status = malloc(sizeof(int));
 	*cli_status = 0;
@@ -81,14 +81,14 @@ int main(int argc, char* argv[])
 	DEBUG_MODE = 1;
 	#endif
 
-	pthread_t openfz_cli_handler, runtime_handler;
+	pthread_t openfz_cli_handler;
 	
 	pthread_create(&openfz_cli_handler, NULL, openfz_cli, NULL);
 
 	pthread_join(openfz_cli_handler, (void**)&cli_status);
 	if( *cli_status == 1) {
 		logger(INFO, "The system will shutdown now");
-		return 1;
+		return 0;
 	}
 	daemonize("openfzd");
 
@@ -178,7 +178,10 @@ void* openfz_cli (void* arg)
 		input = readline(shell_prompt);
 		add_history(input);
 
-		sscanf(input, "%s", sentence);
+		cmd_sz = sscanf(input, "%s", sentence);
+		if (!cmd_sz) {
+			continue;
+		}
 
 		if(strcmp(sentence, "help")== 0) {
 			printf("%s\n", help());
@@ -213,22 +216,26 @@ void* openfz_cli (void* arg)
 
 FZ_M_POOL* load_fis (char* cmd)
 {
-	int* status;
 	char path[100];
-	int path_fz, i;
+	int argc, i;
 	char log[400];
 	FILE* fp;
 
 	FZ_M_POOL* mpool;
 	mpool = (struct fz_m_pool*) malloc(sizeof(struct fz_m_pool));
 
-	path_fz = sscanf(cmd, "%*s %s", path);
-	if (!path_fz) {
-		logger(ERR, "Fis file not found");
+	argc = sscanf(cmd, "%*s %s", path);
+	if (argc < 1) {
+		logger(ERR, "usage: loadfis <filename>. type help to see more informations");
 		return NULL;
 	}
 
 	fp = fopen(path, "r");
+	if (!fp) {
+		sprintf(log, "%s, no such file", path);
+		logger(ERR, log);
+		return NULL;
+	}
 	sprintf(log, "<%s> Loading", path);
 	logger(LOG, log);
 
@@ -278,7 +285,6 @@ double* eval_fis(FZ_M_POOL* mpool, double* in)
 
 	int i, j, k, jump, cur_MF_sz;
 	float* cur_MF;
-	double cur_value;
 	double *fuzzyValues, *outValues, *cur_value_v, *out;
 
 	int rules_sz_ln = 1 + mpool->numInputs + mpool->numOutputs;
@@ -362,7 +368,7 @@ double* eval_fis(FZ_M_POOL* mpool, double* in)
 	}
 
 	return out;
-};
+}
 
 void* runtime (void* arg) {
 	char* cmd = (char*) arg;
@@ -375,10 +381,9 @@ void* runtime (void* arg) {
 
 	/* Socket variables */
 	int sockfd, client_sockfd;
-	int len, client_len;
+	socklen_t len, client_len;
 	struct sockaddr_in address;
 	struct sockaddr_in client_address;
-	int result;
 	int socket_message_len;
 	char* socket_message;
 
@@ -386,13 +391,16 @@ void* runtime (void* arg) {
 	sprintf(log, "The System is trying to run on slot %i", my_slot);
 	logger(LOG, log);
 
+	FZ_M_POOL* mpool = load_fis(cmd);
+	if (!mpool) {
+		pthread_exit(NULL);
+	}
+	logger(LOG, log);
+
 	sprintf(log, "The System is ready on slot %i", my_slot);
 	pthread_mutex_lock(&new_fuzzy_mtx);
 	NEXT_SLOT++;
 	pthread_mutex_unlock(&new_fuzzy_mtx);
-
-	FZ_M_POOL* mpool = load_fis(cmd);
-	logger(LOG, log);
 
 	out = (double*) malloc(sizeof(double)*mpool->numOutputs);
     in = (double*) malloc(sizeof(double)*mpool->numInputs);
