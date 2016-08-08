@@ -17,11 +17,19 @@
 
 #include "mod-fis.h"
 
+void summary (FZ_M_POOL* mpool) {
+	printf("Name\t %s\n", mpool->name);
+	printf("Type\t %s\n", mpool->type_name);
+	printf("# Inputs\t %i\n", mpool->numInputs);
+	printf("# Outputs\t %i\n", mpool->numOutputs);
+	printf("# Rules\t %i\n", mpool->numRules);
+}
+
 FZ_M_POOL* load_fis (char* cmd)
 {
-	char path[100];
+	char path[LOGGER_BUFFER_SIZE];
 	int argc, i;
-	char log[400];
+	char log[LOGGER_BUFFER_SIZE];
 	FILE* fp;
 
 	FZ_M_POOL* mpool;
@@ -79,6 +87,8 @@ FZ_M_POOL* load_fis (char* cmd)
 	
 	sprintf(log, "<%s> Closing file", path);
 	logger(LOG, log);
+
+	mpool->config = START;
 
 	return mpool;
 }
@@ -176,9 +186,11 @@ double* eval_fis(FZ_M_POOL* mpool, double* in)
 void* runtime (void* arg)
 {
 	char* cmd = ((MOD_FIS_ARGS*)arg)->cmd;
-	char log[100];
+	char log[LOGGER_BUFFER_SIZE];
 	int i;
-	int my_slot = ((MOD_FIS_ARGS*)arg)->thread_slot;
+	int* my_slot = ((MOD_FIS_ARGS*)arg)->thread_slot;
+	pthread_mutex_t mtx = ((MOD_FIS_ARGS*)arg)->mtx;
+	FZ_M_POOL* mpool;
 
 	double* out;
 	double* in;
@@ -192,16 +204,21 @@ void* runtime (void* arg)
 	char* socket_message;
 
 	/* Fuzzy loading */
-	sprintf(log, "The System is trying to run on slot %i", my_slot);
+	sprintf(log, "The System is trying to run on slot %i", *my_slot);
 	logger(LOG, log);
 
-	FZ_M_POOL* mpool = load_fis(cmd);
+	mpool = load_fis(cmd);
+	((MOD_FIS_ARGS*)arg)->mpool = mpool;
 	if (!mpool) {
 		pthread_exit(NULL);
 	}
 	logger(LOG, log);
 
-	sprintf(log, "The System is ready on slot %i", my_slot);
+	mpool->slot = (*my_slot);
+	mpool->port = mpool->slot+3000;
+
+	sprintf(log, "The System is ready on slot %i", *my_slot);
+	
 
 	out = (double*) malloc(sizeof(double)*mpool->numOutputs);
     in = (double*) malloc(sizeof(double)*mpool->numInputs);
@@ -214,7 +231,7 @@ void* runtime (void* arg)
     sockfd  = socket(AF_INET, SOCK_STREAM,0);
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = inet_addr("127.0.0.1");
-	address.sin_port = 3000 + my_slot;
+	address.sin_port = mpool->port;
 	len = sizeof(address);
 	bind(sockfd, (struct sockaddr *) &address, len);
   	listen(sockfd, 5);
@@ -222,7 +239,12 @@ void* runtime (void* arg)
   	logger(INFO, log);
 	/* socket created */
 
-	while(1) {
+  	pthread_mutex_lock(&mtx);
+	(*my_slot)++;
+	pthread_mutex_unlock(&mtx);
+
+
+	while(mpool->config & START) {
 		logger(INFO, "Waiting data...");
 		client_sockfd = accept(sockfd, (struct sockaddr *) &client_address, &client_len);
 		read(client_sockfd, socket_message, socket_message_len);
@@ -241,6 +263,9 @@ void* runtime (void* arg)
 	    }
 	    close(client_sockfd);
 	}
+
+	sprintf(log, "<%s> STOPED", mpool->name);
+	logger(INFO,log);
 
 	free(socket_message);
 	free(mpool);

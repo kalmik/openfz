@@ -16,6 +16,8 @@
 #define LOG  4
 
 #define DEBUG_MODE 1
+/* 2KB max logger buffer size */
+#define LOGGER_BUFFER_SIZE 2048 
 
 const char* banner();
 const char* help ();

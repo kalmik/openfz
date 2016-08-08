@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ $1 == "start" ]; then
+	./dist/bin/openfz -d &
+	echo $! > /var/run/openfzd.pid
+fi
+
+if [ $1 == "stop" ]; then
+	kill `cat /var/run/openfzd.pid`
+fi
+
+if [ $1 == "restart" ]; then
+	kill `cat /var/run/openfzd.pid`
+	./dist/bin/openfz -d &
+	echo $! > /var/run/openfzd.pid
+fi

@@ -6,7 +6,7 @@ DIST=dist
 BIN=$(DIST)/bin
 LIB=$(DIST)/lib
 
-DEPS=fuzzy-loader fuzzy-core mod-fis logger
+DEPS=fuzzy-loader fuzzy-core mod-fis logger openfz-cli
 OBJ=$(DIST)/fuzzy-loader.o $(DIST)/fuzzy-core.o $(DIST)/mod-fis.o $(DIST)/logger.o
 
 
@@ -15,9 +15,17 @@ all: openfz
 openfz: $(DEPS)
 	$(CC) $(SRC)/openfz.c $(OBJ) -o $(BIN)/openfz $(CFLAGS)
 
+openfz-cli:
+	$(CC) $(SRC)/openfz-cli.c -o $(BIN)/openfz-cli $(CFLAGS)
+
 debug: $(DEPS)
+	killall openfz &
 	$(CC) $(SRC)/openfz.c $(OBJ) -o $(BIN)/openfz $(CFLAGS) -DDEBUG
 	$(BIN)/openfz
+
+daemon: $(DEPS)
+	$(CC) $(SRC)/openfz.c $(OBJ) -o $(BIN)/openfz $(CFLAGS) -DDEBUG
+	$(BIN)/openfz -d &
 
 fuzzy-loader:
 	$(CC) -c $(SRC)/fuzzy-loader.c -o $(DIST)/fuzzy-loader.o
