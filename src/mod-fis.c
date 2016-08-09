@@ -18,209 +18,230 @@
 #include "mod-fis.h"
 
 void summary (FZ_M_POOL* mpool) {
-	printf("Name\t %s\n", mpool->name);
-	printf("Type\t %s\n", mpool->type_name);
-	printf("# Inputs\t %i\n", mpool->numInputs);
-	printf("# Outputs\t %i\n", mpool->numOutputs);
-	printf("# Rules\t %i\n", mpool->numRules);
+    printf("\tName\t %s\n", mpool->name);
+    printf("\tType\t %s\n", mpool->type_name);
+    printf("\tInputs\t %i\n", mpool->numInputs);
+    printf("\tOutputs\t %i\n", mpool->numOutputs);
+    printf("\tRules\t %i\n", mpool->numRules);
 }
 
 FZ_M_POOL* load_fis (char* cmd)
 {
-	char path[LOGGER_BUFFER_SIZE];
-	int argc, i;
-	char log[LOGGER_BUFFER_SIZE];
-	FILE* fp;
+    char path[LOGGER_BUFFER_SIZE];
+    int argc, i;
+    char log[LOGGER_BUFFER_SIZE];
+    FILE* fp;
 
-	FZ_M_POOL* mpool;
-	mpool = (struct fz_m_pool*) malloc(sizeof(struct fz_m_pool));
+    FZ_M_POOL* mpool;
+    mpool = (struct fz_m_pool*) malloc(sizeof(struct fz_m_pool));
 
-	argc = sscanf(cmd, "%*s %s", path);
-	if (argc < 1) {
-		logger(ERR, "usage: loadfis <filename>. type help to see more informations");
-		return NULL;
-	}
+    argc = sscanf(cmd, "%*s %s", path);
+    if (argc < 1) {
+        logger(ERR, "usage: loadfis <filename>. type help to see more informations");
+        return NULL;
+    }
 
-	fp = fopen(path, "r");
-	if (!fp) {
-		sprintf(log, "%s, no such file", path);
-		logger(ERR, log);
-		return NULL;
-	}
-	sprintf(log, "<%s> Loading", path);
-	logger(LOG, log);
+    fp = fopen(path, "r");
+    if (!fp) {
+        sprintf(log, "%s, no such file", path);
+        logger(ERR, log);
+        return NULL;
+    }
+    sprintf(log, "<%s> Loading", path);
+    logger(LOG, log);
 
-	mpool->name = (char*) malloc(sizeof(char)*100);
-	get_name(fp, mpool->name);
+    mpool->name = (char*) malloc(sizeof(char)*100);
+    get_name(fp, mpool->name);
 
-	mpool->type_name = (char*) malloc(sizeof(char)*10);
-	get_type(fp, mpool->type_name);
+    mpool->type_name = (char*) malloc(sizeof(char)*10);
+    get_type(fp, mpool->type_name);
 
-	sprintf(log, "<%s> Fuzzy system type %s", path, mpool->type_name);
-	logger(LOG, log);
+    sprintf(log, "<%s> Fuzzy system type %s", path, mpool->type_name);
+    logger(LOG, log);
 
-	mpool->numInputs = get_numInputs(fp);
-	mpool->numOutputs = get_numOutputs(fp);
-	mpool->numRules = get_numRules(fp);
-	
-	sprintf(log, "<%s> Number of Inputs %i", path, mpool->numInputs);
-	logger(LOG, log);
-	
-	sprintf(log, "<%s> Number of Outputs %i", path, mpool->numOutputs);
-	logger(LOG, log);
-	
-	sprintf(log, "<%s> Number of Rules %i", path, mpool->numRules);
-	logger(LOG, log);
+    mpool->numInputs = get_numInputs(fp);
+    mpool->numOutputs = get_numOutputs(fp);
+    mpool->numRules = get_numRules(fp);
 
-	mpool->inputRange = (float**)malloc(sizeof(float*)*mpool->numInputs);
-	for(i = 0; i < mpool->numInputs; i++){
-		mpool->inputRange[i] = load_input(fp, NULL);
-	}
+    sprintf(log, "<%s> Number of Inputs %i", path, mpool->numInputs);
+    logger(LOG, log);
 
-	mpool->outputRange = (float**)malloc(sizeof(float*)*mpool->numOutputs);
-	for(i = 0; i < mpool->numOutputs; i++)
-		mpool->outputRange[i] = load_output(fp, NULL);
+    sprintf(log, "<%s> Number of Outputs %i", path, mpool->numOutputs);
+    logger(LOG, log);
 
-	mpool->rules = load_rules(fp, mpool->numInputs, mpool->numOutputs, mpool->numRules, NULL);
-	
-	fclose(fp);
-	
-	sprintf(log, "<%s> Closing file", path);
-	logger(LOG, log);
+    sprintf(log, "<%s> Number of Rules %i", path, mpool->numRules);
+    logger(LOG, log);
 
-	mpool->config = START;
+    mpool->inputRange = (float**)malloc(sizeof(float*)*mpool->numInputs);
+    for(i = 0; i < mpool->numInputs; i++){
+        mpool->inputRange[i] = load_input(fp, NULL);
+    }
 
-	return mpool;
+    mpool->outputRange = (float**)malloc(sizeof(float*)*mpool->numOutputs);
+    for(i = 0; i < mpool->numOutputs; i++)
+        mpool->outputRange[i] = load_output(fp, NULL);
+
+    mpool->rules = load_rules(fp, mpool->numInputs, mpool->numOutputs, mpool->numRules, NULL);
+
+    fclose(fp);
+
+    sprintf(log, "<%s> Closing file", path);
+    logger(LOG, log);
+
+    mpool->config = START;
+
+    return mpool;
 }
 
 double* eval_fis(FZ_M_POOL* mpool, double* in)
 {
 
-	int i, j, k, jump, cur_MF_sz;
-	float* cur_MF;
-	double *fuzzyValues, *outValues, *cur_value_v, *out;
+    int i, j, k, jump, cur_MF_sz;
+    float* cur_MF;
+    double *fuzzyValues, *outValues, *cur_value_v, *out;
 
-	int rules_sz_ln = 1 + mpool->numInputs + mpool->numOutputs;
+    int rules_sz_ln = 1 + mpool->numInputs + mpool->numOutputs;
 
-	fuzzyValues = (double*)malloc(sizeof(double)*mpool->numRules);
-	outValues = (double*)malloc(sizeof(double)*mpool->numOutputs*2);
-	cur_value_v = (double*)malloc(sizeof(double)*mpool->numInputs);
+    fuzzyValues = (double*)malloc(sizeof(double)*mpool->numRules);
+    outValues = (double*)malloc(sizeof(double)*mpool->numOutputs*2);
+    cur_value_v = (double*)malloc(sizeof(double)*mpool->numInputs);
 
-	out = (double*)malloc(sizeof(double)*mpool->numOutputs);
+    out = (double*)malloc(sizeof(double)*mpool->numOutputs);
 
-	for(i = 0; i < mpool->numOutputs*2; i++){
-		outValues[i] = 0;
-	}
+    for(i = 0; i < mpool->numOutputs*2; i++){
+        outValues[i] = 0;
+    }
 
-	for(i = 0; i < mpool->numRules; i++){
+    for(i = 0; i < mpool->numRules; i++){
 
-		for(j = 0; j < mpool->numInputs; j++){
+        for(j = 0; j < mpool->numInputs; j++){
 
-			cur_MF_sz = (int)(mpool->inputRange[j][mpool->rules[i*rules_sz_ln+j]]);
-			cur_MF = (float*)malloc(sizeof(float)*cur_MF_sz);
+            cur_MF_sz = (int)(mpool->inputRange[j][mpool->rules[i*rules_sz_ln+j]]);
+            cur_MF = (float*)malloc(sizeof(float)*cur_MF_sz);
 
-			jump = 0;
-			for(k = 0; k < mpool->rules[i*rules_sz_ln+j]; k++)
-				jump += (int)(mpool->inputRange[j][k]);
+            jump = 0;
+            for(k = 0; k < mpool->rules[i*rules_sz_ln+j]; k++)
+                jump += (int)(mpool->inputRange[j][k]);
 
-			for(k = 0; k < cur_MF_sz; k++){
-				cur_MF[k] = mpool->inputRange[j][k+jump+1];
-			}
+            for(k = 0; k < cur_MF_sz; k++){
+                cur_MF[k] = mpool->inputRange[j][k+jump+1];
+            }
 
-			cur_value_v[j] = fuzzify(in[j], cur_MF, cur_MF_sz);
-			free(cur_MF);
-		}
+            cur_value_v[j] = fuzzify(in[j], cur_MF, cur_MF_sz);
+            free(cur_MF);
+        }
 
-		//Implications
+        //Implications
 
-		fuzzyValues[i] = cur_value_v[0];
-		for(j = 1; j < mpool->numInputs; j ++){
+        fuzzyValues[i] = cur_value_v[0];
+        for(j = 1; j < mpool->numInputs; j ++){
 
-			if(mpool->rules[i*rules_sz_ln+rules_sz_ln-1] == 1)
-				fuzzyValues[i] = andOp(cur_value_v[j], fuzzyValues[i]);
+            if(mpool->rules[i*rules_sz_ln+rules_sz_ln-1] == 1)
+                fuzzyValues[i] = andOp(cur_value_v[j], fuzzyValues[i]);
 
-			else if(mpool->rules[i*rules_sz_ln+rules_sz_ln-1] == 2)
-				fuzzyValues[i] = orOp(cur_value_v[j], fuzzyValues[i]);
-		}
+            else if(mpool->rules[i*rules_sz_ln+rules_sz_ln-1] == 2)
+                fuzzyValues[i] = orOp(cur_value_v[j], fuzzyValues[i]);
+        }
 
-		//Aggregations
+        //Aggregations
 
-		int l = 0;
-		for(j = mpool->numInputs; j < mpool->numOutputs + mpool->numInputs; j++){
+        int l = 0;
+        for(j = mpool->numInputs; j < mpool->numOutputs + mpool->numInputs; j++){
 
-			cur_MF_sz = (int)(mpool->outputRange[j - mpool->numInputs][mpool->rules[i*rules_sz_ln+j]]);
-			cur_MF = (float*)malloc(sizeof(float)*cur_MF_sz);
+            cur_MF_sz = (int)(mpool->outputRange[j - mpool->numInputs][mpool->rules[i*rules_sz_ln+j]]);
+            cur_MF = (float*)malloc(sizeof(float)*cur_MF_sz);
 
-			jump = 0;
-			for(k = 0; k < mpool->rules[i*rules_sz_ln+j]; k++)
-				jump += (int)(mpool->outputRange[j - mpool->numInputs][k]);
+            jump = 0;
+            for(k = 0; k < mpool->rules[i*rules_sz_ln+j]; k++)
+                jump += (int)(mpool->outputRange[j - mpool->numInputs][k]);
 
-			for(k = 0; k < cur_MF_sz; k++){
-				cur_MF[k] = mpool->outputRange[j - mpool->numInputs][k+jump+1];
-			}
+            for(k = 0; k < cur_MF_sz; k++){
+                cur_MF[k] = mpool->outputRange[j - mpool->numInputs][k+jump+1];
+            }
 
-			if(strcmp(mpool->type_name, "mamdani") == 0){
-			 	defuzzify(fuzzyValues[i], cur_MF, cur_MF_sz, &outValues[l], &outValues[l+1]);
-			} else if(strcmp(mpool->type_name, "sugeno") == 0){
-				defuzzify_sugeno(in, fuzzyValues[i], cur_MF, cur_MF_sz, &outValues[l], &outValues[l+1]);
-			}
+            if(strcmp(mpool->type_name, "mamdani") == 0){
+                defuzzify(fuzzyValues[i], cur_MF, cur_MF_sz, &outValues[l], &outValues[l+1]);
+            } else if(strcmp(mpool->type_name, "sugeno") == 0){
+                defuzzify_sugeno(in, fuzzyValues[i], cur_MF, cur_MF_sz, &outValues[l], &outValues[l+1]);
+            }
 
-			l += 2;
-			free(cur_MF);
-		}
+            l += 2;
+            free(cur_MF);
+        }
 
-	}
+    }
 
-	for (i = 0; i < mpool->numOutputs*2; i += 2 )
-	{
-		if (outValues[i] == 0) {
-			out[i] = 0;
-			continue;
-		}
-		out[i] = outValues[i]/outValues[i+1];
-	}
+    for (i = 0; i < mpool->numOutputs*2; i += 2 )
+    {
+        if (outValues[i] == 0) {
+            out[i] = 0;
+            continue;
+        }
+        out[i] = outValues[i]/outValues[i+1];
+    }
 
-	return out;
+    return out;
+}
+
+static void cleanup_fis (void* arg) {
+    char log[LOGGER_BUFFER_SIZE];
+
+    char* sockmsg =( (MOD_FIS_CLEAN_ARGS*) arg)->sockmsg;
+    FZ_M_POOL* mpool =  ( (MOD_FIS_CLEAN_ARGS*) arg)->mpool;
+    int sockfd = ( (MOD_FIS_CLEAN_ARGS*) arg)->sockfd;
+
+    sprintf(log, "<%s> Cleaning up", ((MOD_FIS_CLEAN_ARGS*)arg)->mpool->name);
+    logger(INFO,log);
+
+    mpool->config |= DIRTY;
+
+    free(sockmsg);
+    free(mpool);
+    shutdown(sockfd, SHUT_RDWR);
+    close(sockfd);
+
+    sprintf(log, "<%s> Exited", ((MOD_FIS_CLEAN_ARGS*)arg)->mpool->name);
+    logger(INFO,log);
+
 }
 
 void* runtime (void* arg)
 {
-	char* cmd = ((MOD_FIS_ARGS*)arg)->cmd;
-	char log[LOGGER_BUFFER_SIZE];
-	int i;
-	int* my_slot = ((MOD_FIS_ARGS*)arg)->thread_slot;
-	pthread_mutex_t mtx = ((MOD_FIS_ARGS*)arg)->mtx;
-	FZ_M_POOL* mpool;
+    char* cmd = ((MOD_FIS_ARGS*)arg)->cmd;
+    char log[LOGGER_BUFFER_SIZE];
+    int i;
+    int my_slot = ((MOD_FIS_ARGS*)arg)->thread_slot;
+    FZ_M_POOL* mpool;
 
-	double* out;
-	double* in;
+    double* out;
+    double* in;
 
-	/* Socket variables */
-	int sockfd, client_sockfd;
-	socklen_t len, client_len;
-	struct sockaddr_in address;
-	struct sockaddr_in client_address;
-	int socket_message_len;
-	char* socket_message;
+    /* Socket variables */
+    int sockfd, client_sockfd;
+    socklen_t len, client_len;
+    struct sockaddr_in address;
+    struct sockaddr_in client_address;
+    int socket_message_len;
+    char* socket_message;
 
-	/* Fuzzy loading */
-	sprintf(log, "The System is trying to run on slot %i", *my_slot);
-	logger(LOG, log);
+    /* Fuzzy loading */
+    sprintf(log, "The System is trying to run on slot %i", my_slot);
+    logger(LOG, log);
 
-	mpool = load_fis(cmd);
-	((MOD_FIS_ARGS*)arg)->mpool = mpool;
-	if (!mpool) {
-		pthread_exit(NULL);
-	}
-	logger(LOG, log);
+    mpool = load_fis(cmd);
+    ((MOD_FIS_ARGS*)arg)->mpool = mpool;
+    if (!mpool) {
+        pthread_exit(NULL);
+    }
 
-	mpool->slot = (*my_slot);
-	mpool->port = mpool->slot+3000;
+    mpool->slot = my_slot;
+    mpool->port = mpool->slot+3000;
 
-	sprintf(log, "The System is ready on slot %i", *my_slot);
-	
+    sprintf(log, "The System is ready on slot %i", my_slot);
+    logger(LOG, log);
 
-	out = (double*) malloc(sizeof(double)*mpool->numOutputs);
+
+    out = (double*) malloc(sizeof(double)*mpool->numOutputs);
     in = (double*) malloc(sizeof(double)*mpool->numInputs);
     /* end loading */
 
@@ -229,45 +250,46 @@ void* runtime (void* arg)
     socket_message = (char*) malloc(sizeof(char)*socket_message_len);
 
     sockfd  = socket(AF_INET, SOCK_STREAM,0);
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = inet_addr("127.0.0.1");
-	address.sin_port = mpool->port;
-	len = sizeof(address);
-	bind(sockfd, (struct sockaddr *) &address, len);
-  	listen(sockfd, 5);
-  	sprintf(log, "This fuzzy machine is bond to port %i", address.sin_port);
-  	logger(INFO, log);
-	/* socket created */
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    address.sin_port = mpool->port;
+    len = sizeof(address);
+    bind(sockfd, (struct sockaddr *) &address, len);
+    listen(sockfd, 5);
+    sprintf(log, "This fuzzy machine is bond to port %i", address.sin_port);
+    logger(INFO, log);
+    /* socket created */
 
-  	pthread_mutex_lock(&mtx);
-	(*my_slot)++;
-	pthread_mutex_unlock(&mtx);
+    MOD_FIS_CLEAN_ARGS clean = {
+        socket_message,
+        sockfd,
+        mpool
+    };
 
+    pthread_cleanup_push(cleanup_fis, &clean);
 
-	while(mpool->config & START) {
-		logger(INFO, "Waiting data...");
-		client_sockfd = accept(sockfd, (struct sockaddr *) &client_address, &client_len);
-		read(client_sockfd, socket_message, socket_message_len);
-		for(i = 0; i < mpool->numInputs; i++) {
-			sscanf(socket_message, "%lf ", &in[i]);
-		}
+    while(1) {
+        logger(INFO, "Waiting data...");
+        client_sockfd = accept(sockfd, (struct sockaddr *) &client_address, &client_len);
+        read(client_sockfd, socket_message, socket_message_len);
+        for(i = 0; i < mpool->numInputs; i++) {
+            sscanf(socket_message, "%lf ", &in[i]);
+        }
 
-	    out = eval_fis(mpool, in);
+        out = eval_fis(mpool, in);
 
-	    sprintf(log, "<%s> Inputs %.3f, %.3f",mpool->name, in[0], in[1]);
-	    logger(LOG, log);
-	    for (i = 0; i < mpool->numOutputs; i++) {
-	    	sprintf(log, "<%s> Output[%i] %.3f", mpool->name, i, out[i]);
-	    	write(client_sockfd, log, socket_message_len);
-	    	logger(LOG, log);
-	    }
-	    close(client_sockfd);
-	}
+        sprintf(log, "<%s> Inputs %.3f, %.3f",mpool->name, in[0], in[1]);
+        logger(LOG, log);
+        for (i = 0; i < mpool->numOutputs; i++) {
+            sprintf(log, "<%s> Output[%i] %.3f", mpool->name, i, out[i]);
+            write(client_sockfd, log, socket_message_len);
+            logger(LOG, log);
+        }
 
-	sprintf(log, "<%s> STOPED", mpool->name);
-	logger(INFO,log);
+        close(client_sockfd);
+    }
 
-	free(socket_message);
-	free(mpool);
-	close(sockfd);
+    pthread_cleanup_pop(0);
+
+    return NULL;
 }

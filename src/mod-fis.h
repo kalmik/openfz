@@ -4,9 +4,11 @@
 #include <pthread.h>
 
 #define START_D 0
-#define START 0b00000001 | 0b00000001
+#define START 0b00000001
 
 #define STOP 0b11111110 & START
+#define DIRTY_D 7
+#define DIRTY 0b10000000
 
 typedef struct fz_m_pool
 {
@@ -27,11 +29,17 @@ typedef struct fz_m_pool
 typedef struct mod_fis_args
 {
 	char* cmd;
-	int* thread_slot;
-	pthread_mutex_t mtx;
+	int thread_slot;
 	FZ_M_POOL* mpool;
-	
+
 } MOD_FIS_ARGS;
+
+typedef struct mod_fis_clean_args
+{
+	char* sockmsg;
+	int sockfd;
+	FZ_M_POOL* mpool;
+} MOD_FIS_CLEAN_ARGS;
 
 FZ_M_POOL* load_fis (char* cmd);
 double* eval_fis(FZ_M_POOL* mpool, double* in);

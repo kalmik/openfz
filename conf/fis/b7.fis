@@ -1,5 +1,5 @@
 [System]
-Name='b7matlab'
+Name='b7matlab2'
 Type='mamdani'
 Version=2.0
 NumInputs=2
