@@ -3,45 +3,47 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <signal.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 
 #include "mod-fis.h"
 #include "logger.h"
 #include "request.h"
 
+#define MAX_CONNECTION 10
+
+int CPU_QTY = 4;
+pthread_mutex_t con_mtx, new_mtx;
+pthread_t* fuzzy_slots;
+pthread_t* clients;
+MOD_FIS_ARGS* loaddedfis;
+MOD_FIS_ARGS aux_args;
+unsigned char _exit_ = 0;
+int connections = 0;
+
 char* commands[] = {
     "help"
 };
 
-int CPU_QTY;
+typedef struct daemon_args
+{
+    int sockfd;
+    struct sockaddr_in client;
+} DAEMON_ARGS;
 
 void sigint_handler (int signo);
 
 void spawn_fis (char* input, int* slot, pthread_t* fuzzy_slots, MOD_FIS_ARGS* loaddedfis, int fixed_slot);
 
+void* work (void* args);
+
 int main(int argc, char* argv[])
 {
-
-    unsigned char daemon = 0;
-    unsigned char _run = 1;
     CPU_QTY = 4;
     signal(SIGINT, sigint_handler);
 
-    pthread_t fuzzy_slots[CPU_QTY];
-    MOD_FIS_ARGS loaddedfis[CPU_QTY];
-    MOD_FIS_ARGS aux_args;
-
-    char *input;
-    struct request_payload response;
-    char sentence[REQ_BUFFER_SIZE];
     char log[LOGGER_BUFFER_SIZE];
-    int cmd_sz = 0;
 
     int server_sockfd, client_sockfd;
     socklen_t server_len, client_len;
@@ -50,9 +52,12 @@ int main(int argc, char* argv[])
 
     int it;
     int aux;
-    int empty_slot = 0;
 
-    printf("%s\n", banner());
+    loaddedfis = (MOD_FIS_ARGS*)malloc(sizeof(MOD_FIS_ARGS)*CPU_QTY);
+    fuzzy_slots = (pthread_t*) malloc(sizeof(pthread_mutex_t)*CPU_QTY);
+    clients = (pthread_t*) malloc(sizeof(pthread_t)*MAX_CONNECTION);
+
+    DAEMON_ARGS d_args[MAX_CONNECTION];
 
     server_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -65,17 +70,79 @@ int main(int argc, char* argv[])
         perror("ERR");
         exit(1);
     }
-    freopen( "openfz.log", "w", stdout);
 
+    printf("%s\n", banner());
     logger(INFO, "OpenFZ Started.");
+    freopen( "openfz.log", "w", stdout);
 
     for (it = 0; it < CPU_QTY; it++) {
         loaddedfis[it]  = (MOD_FIS_ARGS) {NULL, 0, NULL};
     }
     listen(server_sockfd, 5);
 
-    client_len = sizeof(client_address);
-    client_sockfd = accept(server_sockfd, (struct sockaddr *) &client_address, &client_len);
+    while(!_exit_) {
+        client_len = sizeof(client_address);
+        client_sockfd = accept(server_sockfd, (struct sockaddr *) &client_address, &client_len);
+        d_args[connections].client = client_address;
+        d_args[connections].sockfd = client_sockfd;
+        pthread_create(&clients[connections], NULL, work, (void*)&d_args[connections]);
+        pthread_mutex_lock(&con_mtx);
+        connections++;
+        pthread_mutex_unlock(&con_mtx);
+        sprintf(log, "New connection from %s", inet_ntoa(client_address.sin_addr));
+        logger(INFO, log);
+    }
+
+    logger(INFO, "The system will shutdown now");
+    return 0;
+}
+
+void spawn_fis (char* input, int* slot, pthread_t* fuzzy_slots, MOD_FIS_ARGS* loaddedfis, int fixed_slot)
+{
+    int it;
+    int empty_slot = *slot;
+    if (fixed_slot >= 0) {
+        empty_slot = fixed_slot;
+    } else {
+        for (it  = 0; it < CPU_QTY; it++) {
+            if(!loaddedfis[it].mpool) continue;
+            if (loaddedfis[it].mpool->config & DIRTY) {
+                empty_slot = it;
+            }
+        }
+    }
+
+    if (empty_slot >= CPU_QTY) {
+        logger(WARN, "There`s no empty slots, type summary to show loadded fis");
+        return;
+    }
+
+    loaddedfis[empty_slot] = (MOD_FIS_ARGS){
+        input,
+        empty_slot,
+        NULL
+    };
+
+    pthread_create(&fuzzy_slots[empty_slot], NULL, runtime, &loaddedfis[empty_slot]);
+    if (fixed_slot < 0)
+        (*slot)++;
+}
+
+void* work (void* args)
+{
+
+    unsigned char _run = 1;
+    struct request_payload response;
+    char log[LOGGER_BUFFER_SIZE];
+    char sentence[REQ_BUFFER_SIZE];
+    char *input;
+
+    int client_sockfd = ((DAEMON_ARGS*)(args))->sockfd;
+    struct sockaddr_in client_address = ((DAEMON_ARGS*)(args))->client;
+
+    int aux;
+    int cmd_sz = 0;
+    int empty_slot = 0;
 
     input = (char*) malloc(sizeof(char)*REQ_BUFFER_SIZE);
     while(_run) {
@@ -162,51 +229,16 @@ int main(int argc, char* argv[])
             logger(ERR, response.msg);
         }
 
-        sendto(server_sockfd, &response, sizeof(struct request_payload) ,0,(struct sockaddr *) &client_address,sizeof(struct sockaddr));
         write(client_sockfd, &response, sizeof(struct request_payload));
         sprintf(log, "Response %s with status %i", response.client_inet4, response.status);
         logger(LOG, log);
     }
 
+    pthread_mutex_lock(&con_mtx);
+    connections--;
+    pthread_mutex_unlock(&con_mtx);
+
     close(client_sockfd);
-    close(server_sockfd);
-
-    free(&response);
-
-    logger(INFO, "The system will shutdown now");
-    free(input);
-    return 0;
-}
-
-void spawn_fis (char* input, int* slot, pthread_t* fuzzy_slots, MOD_FIS_ARGS* loaddedfis, int fixed_slot)
-{
-    int it;
-    int empty_slot = *slot;
-    if (fixed_slot >= 0) {
-        empty_slot = fixed_slot;
-    } else {
-        for (it  = 0; it < CPU_QTY; it++) {
-            if(!loaddedfis[it].mpool) continue;
-            if (loaddedfis[it].mpool->config & DIRTY) {
-                empty_slot = it;
-            }
-        }
-    }
-
-    if (empty_slot >= CPU_QTY) {
-        logger(WARN, "There`s no empty slots, type summary to show loadded fis");
-        return;
-    }
-
-    loaddedfis[empty_slot] = (MOD_FIS_ARGS){
-        input,
-        empty_slot,
-        NULL
-    };
-
-    pthread_create(&fuzzy_slots[empty_slot], NULL, runtime, &loaddedfis[empty_slot]);
-    if (fixed_slot < 0)
-        (*slot)++;
 }
 
 void sigint_handler (int signo) {

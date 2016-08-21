@@ -8,12 +8,14 @@
 #include <string.h>
 #include <readline/readline.h>
 #include <readline/history.h>
-#include <sys/time.h>
 #include "logger.h"
 #include "request.h"
 
+void sigint_handler (int signo);
+
 int main()
 {
+    signal(SIGINT, sigint_handler);
     struct timeval timeout = {0,200}; // 100ms timeout
     int sockfd;
     int len;
@@ -57,4 +59,8 @@ int main()
     close(sockfd);
 
     exit(0);
+}
+void sigint_handler (int signo) {
+    logger(WARN, "To exit type shutdown");
+    prompt();
 }
