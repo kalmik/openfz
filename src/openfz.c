@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
     char log[LOGGER_BUFFER_SIZE];
     int cmd_sz = 0;
 
-    int server_sockfd;
+    int server_sockfd, client_sockfd;
     socklen_t server_len, client_len;
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
@@ -54,45 +54,36 @@ int main(int argc, char* argv[])
 
     printf("%s\n", banner());
 
-    if (argc > 1) {
-        if (strcmp(argv[1], "-d") == 0) {
-            daemon = 1;
-            input = (char*) malloc(sizeof(char)*REQ_BUFFER_SIZE);
+    server_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-            server_sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP );
-
-            server_address.sin_family = AF_INET;
-            server_address.sin_port = htons(1337);
-            server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-            server_len = sizeof(server_address);
-            aux = bind(server_sockfd, (struct sockaddr *) &server_address, server_len);
-            if (aux  == -1) {
-                perror("bind");
-                exit(1);
-            }
-            freopen( "openfz.log", "w", stdout);
-        }
-    } else {
-        rl_bind_key('\t', rl_complete);
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(1337);
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_len = sizeof(server_address);
+    aux = bind(server_sockfd, (struct sockaddr *) &server_address, server_len);
+    if (aux  == -1) {
+        perror("ERR");
+        exit(1);
     }
+    freopen( "openfz.log", "w", stdout);
 
     logger(INFO, "OpenFZ Started.");
 
     for (it = 0; it < CPU_QTY; it++) {
         loaddedfis[it]  = (MOD_FIS_ARGS) {NULL, 0, NULL};
     }
+    listen(server_sockfd, 5);
 
+    client_len = sizeof(client_address);
+    client_sockfd = accept(server_sockfd, (struct sockaddr *) &client_address, &client_len);
+
+    input = (char*) malloc(sizeof(char)*REQ_BUFFER_SIZE);
     while(_run) {
         response.status = 400;
-        if (daemon) {
-            client_len = sizeof(client_address);
-            recvfrom(server_sockfd, input, REQ_BUFFER_SIZE, 0, (struct sockaddr *) &client_address, &client_len);
-            sprintf(log, "recive %s from %s", input, inet_ntoa(client_address.sin_addr));
-            logger(LOG, log);
-
-        } else {
-            input = readline(NULL);
-        }
+        read(client_sockfd, input, REQ_BUFFER_SIZE);
+        sprintf(response.client_inet4, "%s", inet_ntoa(client_address.sin_addr));
+        sprintf(log, "recive %s from %s", input, response.client_inet4);
+        logger(LOG, log);
 
         cmd_sz = sscanf(input, "%s", sentence);
         if (!cmd_sz) {
@@ -172,9 +163,15 @@ int main(int argc, char* argv[])
         }
 
         sendto(server_sockfd, &response, sizeof(struct request_payload) ,0,(struct sockaddr *) &client_address,sizeof(struct sockaddr));
-        sprintf(log, "Response %s with status %i", inet_ntoa(client_address.sin_addr), response.status);
+        write(client_sockfd, &response, sizeof(struct request_payload));
+        sprintf(log, "Response %s with status %i", response.client_inet4, response.status);
         logger(LOG, log);
     }
+
+    close(client_sockfd);
+    close(server_sockfd);
+
+    free(&response);
 
     logger(INFO, "The system will shutdown now");
     free(input);

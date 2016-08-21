@@ -8,20 +8,22 @@
 #include <string.h>
 #include <readline/readline.h>
 #include <readline/history.h>
-
+#include <sys/time.h>
 #include "logger.h"
 #include "request.h"
 
 int main()
 {
+    struct timeval timeout = {0,200}; // 100ms timeout
     int sockfd;
     int len;
+    ssize_t rcv_len;
     struct sockaddr_in address;
     
     char* input;
     struct request_payload response;
 
-    sockfd  = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    sockfd  = socket(AF_INET, SOCK_STREAM, 0);
 
     address.sin_family = AF_INET;
     address.sin_port = htons(1337);
@@ -29,21 +31,28 @@ int main()
         fprintf(stderr, "inet_aton() failed\n");
         exit(1);
     }
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(struct timeval));
 
     len = sizeof(address);
 
     rl_bind_key('\t', rl_complete);
+    rcv_len = connect(sockfd, (struct sockaddr *) &address, len);
 
+    if (rcv_len == -1)
+    {
+        perror ("Houve erro no cliente");
+        exit(1);
+    }
     while (1) {
         prompt();
         input = readline(NULL);
-        sendto(sockfd, input, LOGGER_BUFFER_SIZE, 0, (struct sockaddr *) &address, sizeof(struct sockaddr));
-        recvfrom(sockfd, &response, sizeof(struct request_payload), 0, (struct sockaddr *) &address, &len);
+        write(sockfd, input, REQ_BUFFER_SIZE);
+        read(sockfd, &response, sizeof(struct request_payload));
+
         printf("%i %s\n", response.status, response.msg);
         if (strcmp(response.msg, "END") == 0){
             break;
         }
-        
     }
     close(sockfd);
 

@@ -10,6 +10,7 @@
 struct request_payload {
     int status;
     char msg[REQ_BUFFER_SIZE];
+    char client_inet4[15];
     void* extra;
 };
 
