@@ -1,69 +1,51 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <stdio.h>
-#include <sys/un.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <pthread.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
 #include "logger.h"
-
-void* logger_run (void* arg);
+#include "request.h"
 
 int main()
 {
     int sockfd;
     int len;
-    struct sockaddr_un address;
-    int result;
+    struct sockaddr_in address;
     
     char* input;
-    
+    struct request_payload response;
 
-    pthread_t logger_handler;
+    sockfd  = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    sockfd  = socket(AF_UNIX, SOCK_STREAM,0);
-
-    address.sun_family = AF_UNIX;
-    strcpy (address.sun_path, "openfz.sock");
-    len = sizeof(address);
-
-    result = connect(sockfd, (struct sockaddr *) &address, len);
-
-    if (result == -1) {
-        printf("ERRO\n");
+    address.sin_family = AF_INET;
+    address.sin_port = htons(1337);
+    if (inet_aton("127.0.0.1", &address.sin_addr)==0) {
+        fprintf(stderr, "inet_aton() failed\n");
         exit(1);
     }
 
-    pthread_create(&logger_handler, NULL, logger_run, NULL);
+    len = sizeof(address);
+
     rl_bind_key('\t', rl_complete);
+
     while (1) {
+        prompt();
         input = readline(NULL);
-        write(sockfd, input , LOGGER_BUFFER_SIZE);
+        sendto(sockfd, input, LOGGER_BUFFER_SIZE, 0, (struct sockaddr *) &address, sizeof(struct sockaddr));
+        recvfrom(sockfd, &response, sizeof(struct request_payload), 0, (struct sockaddr *) &address, &len);
+        printf("%i %s\n", response.status, response.msg);
+        if (strcmp(response.msg, "END") == 0){
+            break;
+        }
         
     }
-
-    pthread_join(logger_handler, NULL);
-
     close(sockfd);
 
     exit(0);
-}
-
-void* logger_run (void* arg) 
-{
-    int sock_in_fd;
-    char log[LOGGER_BUFFER_SIZE];
-
-    sock_in_fd = open("openfz.log", O_RDONLY);
-
-    while (1) {
-        read(sock_in_fd, log, LOGGER_BUFFER_SIZE);
-        printf("%s\n", log);
-    }
 }

@@ -1,12 +1,9 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
@@ -14,15 +11,22 @@
 #include "fuzzy-core.h"
 
 #include "logger.h"
+#include "request.h"
 
 #include "mod-fis.h"
 
-void summary (FZ_M_POOL* mpool) {
-    printf("\tName\t %s\n", mpool->name);
-    printf("\tType\t %s\n", mpool->type_name);
-    printf("\tInputs\t %i\n", mpool->numInputs);
-    printf("\tOutputs\t %i\n", mpool->numOutputs);
-    printf("\tRules\t %i\n", mpool->numRules);
+char* summary (FZ_M_POOL* mpool) {
+    char* summ = (char*)malloc(sizeof(char)*REQ_BUFFER_SIZE);
+    sprintf(summ,
+            "\tName\t %s\n"
+            "\tType\t %s\n"
+            "\tInputs\t %i\n"
+            "\tOutputs\t %i\n"
+            "\tRules\t %i\n",
+            mpool->name, mpool->type_name, mpool->numInputs,
+            mpool->numOutputs, mpool->numRules);
+
+    return summ;
 }
 
 FZ_M_POOL* load_fis (char* cmd)

@@ -28,7 +28,9 @@ const char* banner()
 const char* help ()
 {
 	return ("\n"
-		    "\tloadfis <filename.fis>   - Load a new fis file\n"
+		    "\tloadfis <filename.fis>   - Load a new MFIS with a .fis file\n"
+			"\tsummary                  - Show the loaded MFIS\n"
+			"\tsummary <fuzzy slot>     - Show the details of the fuzzy slot\n"
 		    "\treloadfis                - Reload the current fis file\n"
 		    "\tunloadfis                - Unload the current fis file\n"
 		    "\tshutdown                 - Shutdown system\n"
@@ -63,7 +65,9 @@ void logger (int type, char* msg)
 		case LOG:
 			printf("\r%s[LOG] %s%s\n", KCYN, msg, KNRM);
 			break;
+        default:
+            printf("[LOG] %s", msg);
 
 	}
-	prompt();
+    fflush(stdout);
 }

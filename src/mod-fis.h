@@ -41,6 +41,7 @@ typedef struct mod_fis_clean_args
 	FZ_M_POOL* mpool;
 } MOD_FIS_CLEAN_ARGS;
 
+char* summary (FZ_M_POOL* mpool);
 FZ_M_POOL* load_fis (char* cmd);
 double* eval_fis(FZ_M_POOL* mpool, double* in);
 void* runtime (void* arg);

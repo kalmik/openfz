@@ -16,7 +16,7 @@ openfz: $(DEPS)
 	$(CC) $(SRC)/openfz.c $(OBJ) -o $(BIN)/openfz $(CFLAGS)
 
 openfz-cli:
-	$(CC) $(SRC)/openfz-cli.c -o $(BIN)/openfz-cli $(CFLAGS)
+	$(CC) $(SRC)/openfz-cli.c $(DIST)/logger.o -o $(BIN)/openfz-cli $(CFLAGS)
 
 debug: $(DEPS)
 	killall openfz &
