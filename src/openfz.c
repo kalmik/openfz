@@ -21,7 +21,7 @@ pthread_t* clients;
 MOD_FIS_ARGS* loaddedfis;
 MOD_FIS_ARGS aux_args;
 unsigned char _exit_ = 0;
-int connections = 0;
+int connection_count = 0;
 
 char* commands[] = {
     "help"
@@ -31,12 +31,15 @@ typedef struct daemon_args
 {
     int sockfd;
     struct sockaddr_in client;
+
 } DAEMON_ARGS;
+
+DAEMON_ARGS connections[MAX_CONNECTION];
 
 void sigint_handler (int signo);
 
 void spawn_fis (char* input, int* slot, pthread_t* fuzzy_slots, MOD_FIS_ARGS* loaddedfis, int fixed_slot);
-
+void* client_monitor(void* on_disconnect);
 void* work (void* args);
 
 int main(int argc, char* argv[])
@@ -54,11 +57,11 @@ int main(int argc, char* argv[])
     int it;
     int aux;
 
+    pthread_t c_monitor;
+
     loaddedfis = (MOD_FIS_ARGS*)malloc(sizeof(MOD_FIS_ARGS)*CPU_QTY);
     fuzzy_slots = (pthread_t*) malloc(sizeof(pthread_mutex_t)*CPU_QTY);
     clients = (pthread_t*) malloc(sizeof(pthread_t)*MAX_CONNECTION);
-
-    DAEMON_ARGS d_args[MAX_CONNECTION];
 
     server_sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -81,18 +84,24 @@ int main(int argc, char* argv[])
     }
     listen(server_sockfd, 5);
 
+    /* Starting Client monitor */
+    pthread_create(&c_monitor, NULL, client_monitor, NULL);
+
+    /* Starting Daemon */
     while(!_exit_) {
         client_len = sizeof(client_address);
         client_sockfd = accept(server_sockfd, (struct sockaddr *) &client_address, &client_len);
-        d_args[connections].client = client_address;
-        d_args[connections].sockfd = client_sockfd;
-        pthread_create(&clients[connections], NULL, work, (void*)&d_args[connections]);
+        connections[connection_count].client = client_address;
+        connections[connection_count].sockfd = client_sockfd;
+        pthread_create(&clients[connection_count], NULL, work, (void*)&connections[connection_count]);
         pthread_mutex_lock(&con_mtx);
-        connections++;
+        connection_count++;
         pthread_mutex_unlock(&con_mtx);
         sprintf(log, "New connection from %s", inet_ntoa(client_address.sin_addr));
         logger(INFO, log);
     }
+
+    pthread_join(c_monitor, NULL);
 
     logger(INFO, "The system will shutdown now");
     return 0;
@@ -237,7 +246,7 @@ void* work (void* args)
     }
 
     pthread_mutex_lock(&con_mtx);
-    connections--;
+    connection_count--;
     pthread_mutex_unlock(&con_mtx);
 
     close(client_sockfd);
@@ -246,4 +255,24 @@ void* work (void* args)
 void sigint_handler (int signo) {
     logger(WARN, "To exit type shutdown");
     prompt();
+}
+
+void* client_monitor(void* on_disconnect)
+{
+    int it;
+    int log[LOGGER_BUFFER_SIZE];
+    struct request_payload response;
+    logger(INFO, "Initializing client monitor");
+    while(!_exit_) {
+        for (it = 0; it < connection_count; it++) {
+            sprintf(log, "Send heartbeat for %s", inet_ntoa(connections[it].client.sin_addr));
+            logger(INFO, log);
+            response.status = 100;
+            write(connections[it].sockfd, &response, sizeof(struct request_payload));
+            read(connections[it].sockfd, &response, sizeof(struct request_payload));
+            sprintf(log, "Recieve heartbeat from %s", inet_ntoa(connections[it].client.sin_addr));
+            logger(INFO, log);
+        }
+        sleep(1);
+    }
 }
