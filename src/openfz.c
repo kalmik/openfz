@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include "mod-fis.h"
 #include "logger.h"
@@ -189,14 +190,15 @@ void* work (void* args)
             }
         }
 
-//        if (strcmp(sentence, "summary") == 0) {
-//            cmd_sz = sscanf(input, "%*s %i", &aux);
-//            if (cmd_sz >= 0) {
-//                if (!loaddedfis[aux].mpool) continue;
-//                if (loaddedfis[aux].mpool->config & DIRTY) continue;
-//                response.status = 200;
-//                strcpy(response.msg, summary(loaddedfis[aux].mpool));
-//            } else {
+        if (strcmp(sentence, "summary") == 0) {
+            cmd_sz = sscanf(input, "%*s %i", &aux);
+            if (cmd_sz >= 0) {
+                if (!loaddedfis[aux].mpool) continue;
+                if (loaddedfis[aux].mpool->config & DIRTY) continue;
+                response.status = 200;
+                sprintf(response.msg, "%s\n", summary(loaddedfis[aux].mpool));
+            }
+//            else {
 //                sprintf(log, "Summary of allocated fuzzy machines\n\n"
 //                        "\tSlot Port Name Type\n"
 //                        "---------------------------------------\n");
@@ -216,7 +218,7 @@ void* work (void* args)
 //                printf("---------------------------------------\n");
 //                continue;
 //            }
-//        }
+        }
 
         else if (strcmp(sentence, "shutdown") == 0) {
             sprintf(response.msg, "END");

@@ -1,2 +1,6 @@
 fuzzy-project/
 dist/*.o
+dist/bin/*
+*.log
+.idea/
+CMakeLists.txt

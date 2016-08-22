@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "logger.h"
@@ -16,7 +17,6 @@ void sigint_handler (int signo);
 int main()
 {
     signal(SIGINT, sigint_handler);
-    struct timeval timeout = {0,200}; // 100ms timeout
     int sockfd;
     int len;
     ssize_t rcv_len;
@@ -33,7 +33,6 @@ int main()
         fprintf(stderr, "inet_aton() failed\n");
         exit(1);
     }
-    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(struct timeval));
 
     len = sizeof(address);
 
