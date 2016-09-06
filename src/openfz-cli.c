@@ -9,12 +9,11 @@
 #include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
-#include <pthread.h>
 #include "logger.h"
 #include "request.h"
 
 void sigint_handler (int signo);
-void* heartbeat_response(void* args);
+unsigned char _exit_ = 0;
 
 int main()
 {
@@ -25,9 +24,9 @@ int main()
     struct sockaddr_in address;
     
     char* input;
+    char log[LOGGER_BUFFER_SIZE];
+    struct request_payload request;
     struct request_payload response;
-
-    pthread_t heartbeat_t;
 
     sockfd  = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -45,22 +44,31 @@ int main()
 
     if (rcv_len == -1)
     {
-        perror ("Houve erro no cliente");
+        perror("Connection Error!");
         exit(1);
     }
-    pthread_create(&heartbeat_t, NULL, heartbeat_response, &sockfd);
-    while (1) {
+
+    while (!_exit_) {
         prompt();
         input = readline(NULL);
-        write(sockfd, input, REQ_BUFFER_SIZE);
+        request.status = 200;
+        sprintf(request.msg, input);
+        write(sockfd, &request, sizeof(struct request_payload));
         read(sockfd, &response, sizeof(struct request_payload));
-
-        printf("%i %s\n", response.status, response.msg);
+        sprintf(log, "Response status %i\n", response.status);
+        if(response.status != 200){
+            logger(WARN, log);
+            continue;
+        }
+        logger(LOG, log);
+        sprintf(log, "%s\n", response.msg);
+        logger(INFO, log);
         if (strcmp(response.msg, "END") == 0){
+            _exit_ = 1;
             break;
         }
     }
-    pthread_join(&heartbeat_t, NULL);
+
     close(sockfd);
 
     exit(0);
@@ -68,17 +76,4 @@ int main()
 void sigint_handler (int signo) {
     logger(WARN, "To exit type shutdown");
     prompt();
-}
-
-void* heartbeat_response(void* args)
-{
-    int fd = (int)(args);
-    struct request_payload response;
-    while(1) {
-        read(fd, &response, sizeof(struct request_payload));
-        if (response.status != 100) continue;
-        response.status = 101;
-        write(fd, &response, sizeof(struct request_payload));
-    }
-
 }

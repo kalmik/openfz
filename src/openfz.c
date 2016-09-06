@@ -13,6 +13,7 @@
 #include "request.h"
 
 #define MAX_CONNECTION 10
+#define CONNECTION_TIMEOUT 60
 
 int CPU_QTY = 4;
 pthread_mutex_t con_mtx, new_mtx;
@@ -39,13 +40,12 @@ DAEMON_ARGS connections[MAX_CONNECTION];
 void sigint_handler (int signo);
 
 void spawn_fis (char* input, int* slot, pthread_t* fuzzy_slots, MOD_FIS_ARGS* loaddedfis, int fixed_slot);
-void* client_monitor(void* on_disconnect);
 void* work (void* args);
 
 int main(int argc, char* argv[])
 {
     CPU_QTY = 4;
-    signal(SIGINT, sigint_handler);
+//    signal(SIGINT, sigint_handler);
 
     char log[LOGGER_BUFFER_SIZE];
 
@@ -84,9 +84,6 @@ int main(int argc, char* argv[])
     }
     listen(server_sockfd, 5);
 
-    /* Starting Client monitor */
-    pthread_create(&c_monitor, NULL, client_monitor, NULL);
-
     /* Starting Daemon */
     while(!_exit_) {
         client_len = sizeof(client_address);
@@ -100,8 +97,6 @@ int main(int argc, char* argv[])
         sprintf(log, "New connection from %s", inet_ntoa(client_address.sin_addr));
         logger(INFO, log);
     }
-
-    pthread_join(c_monitor, NULL);
 
     logger(INFO, "The system will shutdown now");
     return 0;
@@ -142,23 +137,37 @@ void* work (void* args)
 {
 
     unsigned char _run = 1;
+    struct request_payload request;
     struct request_payload response;
     char log[LOGGER_BUFFER_SIZE];
+    char logaux[LOGGER_BUFFER_SIZE];
     char sentence[REQ_BUFFER_SIZE];
     char *input;
 
     int client_sockfd = ((DAEMON_ARGS*)(args))->sockfd;
     struct sockaddr_in client_address = ((DAEMON_ARGS*)(args))->client;
 
-    int aux;
+    int aux, it;
     int cmd_sz = 0;
     int empty_slot = 0;
+    struct timeval timeout = {CONNECTION_TIMEOUT, 0};
+    ssize_t rcv;
 
+    setsockopt (client_sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
     input = (char*) malloc(sizeof(char)*REQ_BUFFER_SIZE);
     while(_run) {
         response.status = 400;
-        read(client_sockfd, input, REQ_BUFFER_SIZE);
-        sprintf(response.client_inet4, "%s", inet_ntoa(client_address.sin_addr));
+        rcv = read(client_sockfd, &request, sizeof(struct request_payload));
+        if (rcv == -1) {
+            logger(INFO, "Connection timeout, exiting");
+            break;
+        }
+
+        if (request.status == 101) {
+            continue;
+        }
+        sprintf(response.client_inet4, inet_ntoa(client_address.sin_addr));
+        sprintf(input, request.msg);
         sprintf(log, "recive %s from %s", input, response.client_inet4);
         logger(LOG, log);
 
@@ -207,26 +216,31 @@ void* work (void* args)
                 response.status = 200;
                 sprintf(response.msg, "%s\n", summary(loaddedfis[aux].mpool));
             }
-//            else {
-//                sprintf(log, "Summary of allocated fuzzy machines\n\n"
-//                        "\tSlot Port Name Type\n"
-//                        "---------------------------------------\n");
-//                aux = 0;
-//                for (it = 0; it < CPU_QTY; it++) {
-//                    if (!loaddedfis[it].mpool) continue;
-//                    if (loaddedfis[it].mpool->config & DIRTY) continue;
-//
-//                    sprintf("\t%i %i %s %s\n", loaddedfis[it].mpool->slot,
-//                           loaddedfis[it].mpool->port,
-//                           loaddedfis[it].mpool->name,
-//                           loaddedfis[it].mpool->type_name);
-//                    aux++;
-//                }
-//                if (!aux)
-//                    printf("There`s no fuzzy\n");
-//                printf("---------------------------------------\n");
-//                continue;
-//            }
+            else {
+                sprintf(log, "Summary of allocated fuzzy machines\n\n"
+                        "\tSlot Port Name Type\n"
+                        "---------------------------------------\n");
+                aux = 0;
+                for (it = 0; it < CPU_QTY; it++) {
+                    if (!loaddedfis[it].mpool) continue;
+                    if (loaddedfis[it].mpool->config & DIRTY) continue;
+
+                    sprintf(logaux, "\t%i %i %s %s\n", loaddedfis[it].mpool->slot,
+                           loaddedfis[it].mpool->port,
+                           loaddedfis[it].mpool->name,
+                           loaddedfis[it].mpool->type_name);
+                    strcat(log, logaux);
+                    aux++;
+                }
+                if (!aux) {
+                    sprintf(logaux, "There`s no fuzzy\n");
+                    strcat(log, logaux);
+                }
+                sprintf(logaux, "---------------------------------------\n");
+                strcat(log, logaux);
+                sprintf(response.msg, log);
+                response.status = 200;
+            }
         }
 
         else if (strcmp(sentence, "shutdown") == 0) {
@@ -248,31 +262,10 @@ void* work (void* args)
     pthread_mutex_lock(&con_mtx);
     connection_count--;
     pthread_mutex_unlock(&con_mtx);
-
     close(client_sockfd);
 }
 
 void sigint_handler (int signo) {
     logger(WARN, "To exit type shutdown");
     prompt();
-}
-
-void* client_monitor(void* on_disconnect)
-{
-    int it;
-    int log[LOGGER_BUFFER_SIZE];
-    struct request_payload response;
-    logger(INFO, "Initializing client monitor");
-    while(!_exit_) {
-        for (it = 0; it < connection_count; it++) {
-            sprintf(log, "Send heartbeat for %s", inet_ntoa(connections[it].client.sin_addr));
-            logger(INFO, log);
-            response.status = 100;
-            write(connections[it].sockfd, &response, sizeof(struct request_payload));
-            read(connections[it].sockfd, &response, sizeof(struct request_payload));
-            sprintf(log, "Recieve heartbeat from %s", inet_ntoa(connections[it].client.sin_addr));
-            logger(INFO, log);
-        }
-        sleep(1);
-    }
 }
