@@ -201,7 +201,7 @@ void* work (void* args)
             }
         }
 
-        if (strcmp(sentence, "summary") == 0) {
+        else if (strcmp(sentence, "summary") == 0) {
             cmd_sz = sscanf(input, "%*s %i", &aux);
             if (cmd_sz >= 0) {
                 if (!loaddedfis[aux].mpool) continue;

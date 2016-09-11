@@ -9,13 +9,14 @@
 #include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <getopt.h>
 #include "logger.h"
 #include "request.h"
 
 void sigint_handler (int signo);
 unsigned char _exit_ = 0;
 
-int main()
+int main(int argc, char* argv[])
 {
     signal(SIGINT, sigint_handler);
     int sockfd;
@@ -28,11 +29,26 @@ int main()
     struct request_payload request;
     struct request_payload response;
 
+    int opt;
+    char host[15] = "127.0.0.1";
+
+    while ((opt = getopt(argc, argv, "h:")) != -1) {
+        switch (opt) {
+            case 'h':
+                sprintf(host, optarg);
+                break;
+            default: /* '?' */
+                fprintf(stderr, "Usage: %s [-h host]\n",
+                        argv[0]);
+                exit(EXIT_FAILURE);
+        }
+    }
+
     sockfd  = socket(AF_INET, SOCK_STREAM, 0);
 
     address.sin_family = AF_INET;
     address.sin_port = htons(1337);
-    if (inet_aton("127.0.0.1", &address.sin_addr)==0) {
+    if (inet_aton(host, &address.sin_addr)==0) {
         fprintf(stderr, "inet_aton() failed\n");
         exit(1);
     }
