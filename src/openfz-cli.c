@@ -67,6 +67,7 @@ int main(int argc, char* argv[])
     while (!_exit_) {
         prompt();
         input = readline(NULL);
+        if(strcmp(input, "")==0) continue;
         request.status = 200;
         sprintf(request.msg, input);
         write(sockfd, &request, sizeof(struct request_payload));

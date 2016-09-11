@@ -156,9 +156,6 @@ void* work (void* args)
             break;
         }
 
-        if (request.status == 101) {
-            continue;
-        }
         sprintf(response.client_inet4, inet_ntoa(client_address.sin_addr));
         sprintf(input, request.msg);
         sprintf(log, "recive %s from %s", input, response.client_inet4);
@@ -166,30 +163,22 @@ void* work (void* args)
 
         cmd_sz = sscanf(input, "%s", sentence);
         if (!cmd_sz) {
-            continue;
-        }
-
-        else if(strcmp(sentence, "help") == 0) {
+            sprintf(response.msg, "Missing argument");
+        } else if (strcmp(sentence, "help") == 0) {
             response.status = 200;
             sprintf(response.msg, help());
-        }
-
-        else if (strcmp(sentence, "loadfis") == 0) {
+        } else if (strcmp(sentence, "loadfis") == 0) {
             spawn_fis(input, &empty_slot, fuzzy_slots, loaddedfis, -1);
             response.status = 200;
             sprintf(response.msg, "Ok");
-        }
-
-        else if (strcmp(sentence, "unloadfis") == 0) {
+        } else if (strcmp(sentence, "unloadfis") == 0) {
             cmd_sz = sscanf(input, "%*s %i", &aux);
             if (cmd_sz >= 0) {
                 pthread_cancel(fuzzy_slots[aux]);
                 response.status = 200;
                 sprintf(response.msg, "Ok");
             } /* FIXME UNLOAD ALL*/
-        }
-
-        else if (strcmp(sentence, "reloadfis") == 0) {
+        } else if (strcmp(sentence, "reloadfis") == 0) {
             cmd_sz = sscanf(input, "%*s %i", &aux);
             if (cmd_sz >= 0) {
                 aux_args = loaddedfis[aux];
@@ -199,9 +188,7 @@ void* work (void* args)
                 response.status = 200;
                 sprintf(response.msg, "Ok");
             }
-        }
-
-        else if (strcmp(sentence, "summary") == 0) {
+        } else if (strcmp(sentence, "summary") == 0) {
             cmd_sz = sscanf(input, "%*s %i", &aux);
             if (cmd_sz >= 0) {
                 if (!loaddedfis[aux].mpool) continue;
@@ -234,9 +221,7 @@ void* work (void* args)
                 sprintf(response.msg, log);
                 response.status = 200;
             }
-        }
-
-        else if (strcmp(sentence, "shutdown") == 0) {
+        } else if (strcmp(sentence, "shutdown") == 0) {
             sprintf(response.msg, "END");
             response.status = 200;
             _run = 0;
