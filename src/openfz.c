@@ -150,7 +150,7 @@ void* work (void* args)
     input = (char*) malloc(sizeof(char)*REQ_BUFFER_SIZE);
     while(_run) {
         response.status = 400;
-        rcv = read(client_sockfd, &request, sizeof(struct request_payload));
+        rcv = recv(client_sockfd, &request, sizeof(struct request_payload), 0);
         if (rcv == -1) {
             logger(INFO, "Connection timeout, exiting");
             break;
@@ -232,7 +232,7 @@ void* work (void* args)
             logger(ERR, response.msg);
         }
 
-        write(client_sockfd, &response, sizeof(struct request_payload));
+        send(client_sockfd, &response, sizeof(struct request_payload), 0);
         sprintf(log, "Response %s with status %i", response.client_inet4, response.status);
         logger(LOG, log);
     }

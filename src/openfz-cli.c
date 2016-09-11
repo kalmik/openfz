@@ -70,8 +70,8 @@ int main(int argc, char* argv[])
         if(strcmp(input, "")==0) continue;
         request.status = 200;
         sprintf(request.msg, input);
-        write(sockfd, &request, sizeof(struct request_payload));
-        read(sockfd, &response, sizeof(struct request_payload));
+        send(sockfd, &request, sizeof(struct request_payload), 0);
+        recv(sockfd, &response, sizeof(struct request_payload), 0);
         sprintf(log, "Response status %i\n", response.status);
         if(response.status != 200){
             logger(WARN, log);
