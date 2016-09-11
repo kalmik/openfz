@@ -16,17 +16,13 @@
 #define CONNECTION_TIMEOUT 60
 
 int CPU_QTY = 4;
-pthread_mutex_t con_mtx, new_mtx;
+pthread_mutex_t con_mtx;
 pthread_t* fuzzy_slots;
 pthread_t* clients;
 MOD_FIS_ARGS* loaddedfis;
 MOD_FIS_ARGS aux_args;
 unsigned char _exit_ = 0;
 int connection_count = 0;
-
-char* commands[] = {
-    "help"
-};
 
 typedef struct daemon_args
 {
@@ -45,7 +41,6 @@ void* work (void* args);
 int main(int argc, char* argv[])
 {
     CPU_QTY = 4;
-//    signal(SIGINT, sigint_handler);
 
     char log[LOGGER_BUFFER_SIZE];
 
@@ -56,8 +51,6 @@ int main(int argc, char* argv[])
 
     int it;
     int aux;
-
-    pthread_t c_monitor;
 
     loaddedfis = (MOD_FIS_ARGS*)malloc(sizeof(MOD_FIS_ARGS)*CPU_QTY);
     fuzzy_slots = (pthread_t*) malloc(sizeof(pthread_mutex_t)*CPU_QTY);

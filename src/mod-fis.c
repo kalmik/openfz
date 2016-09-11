@@ -184,6 +184,10 @@ double* eval_fis(FZ_M_POOL* mpool, double* in)
         out[i] = outValues[i]/outValues[i+1];
     }
 
+    free(fuzzyValues);
+    free(outValues);
+    free(cur_value_v);
+
     return out;
 }
 
@@ -211,14 +215,13 @@ static void cleanup_fis (void* arg) {
 
 void* runtime (void* arg)
 {
+    unsigned char _exit_ = 0;
+
     char* cmd = ((MOD_FIS_ARGS*)arg)->cmd;
     char log[LOGGER_BUFFER_SIZE];
     int i;
     int my_slot = ((MOD_FIS_ARGS*)arg)->thread_slot;
     FZ_M_POOL* mpool;
-
-    double* out;
-    double* in;
 
     /* Socket variables */
     int sockfd, client_sockfd;
@@ -228,8 +231,12 @@ void* runtime (void* arg)
     int socket_message_len;
     char* socket_message;
 
+    double* request;
+    double* response;
+    ssize_t request_sz = 0;
+
     /* Fuzzy loading */
-    sprintf(log, "The System is trying to run on slot %i", my_slot);
+    sprintf(log, "mod-fis.c slot %i, start", my_slot);
     logger(LOG, log);
 
     mpool = load_fis(cmd);
@@ -241,12 +248,9 @@ void* runtime (void* arg)
     mpool->slot = my_slot;
     mpool->port = mpool->slot+3000;
 
-    sprintf(log, "The System is ready on slot %i", my_slot);
+    sprintf(log, "mod-fis.c %s slot %i ready", mpool->name, my_slot);
     logger(LOG, log);
 
-
-    out = (double*) malloc(sizeof(double)*mpool->numOutputs);
-    in = (double*) malloc(sizeof(double)*mpool->numInputs);
     /* end loading */
 
     /* Socket creating */
@@ -255,12 +259,12 @@ void* runtime (void* arg)
 
     sockfd  = socket(AF_INET, SOCK_STREAM,0);
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr("127.0.0.1");
-    address.sin_port = mpool->port;
+    address.sin_addr.s_addr = htonl(INADDR_ANY);
+    address.sin_port = (in_port_t)mpool->port;
     len = sizeof(address);
     bind(sockfd, (struct sockaddr *) &address, len);
     listen(sockfd, 5);
-    sprintf(log, "This fuzzy machine is bond to port %i", address.sin_port);
+    sprintf(log, "mod-fis.c %s slot %i listen on port %i", mpool->name, my_slot, address.sin_port);
     logger(INFO, log);
     /* socket created */
 
@@ -270,27 +274,26 @@ void* runtime (void* arg)
         mpool
     };
 
+
+    request = (double*) malloc(sizeof(double)*mpool->numInputs);
+    response = (double*) malloc(sizeof(double)*mpool->numOutputs);
+
     pthread_cleanup_push(cleanup_fis, &clean);
 
-    while(1) {
-        logger(INFO, "Waiting data...");
+    signal(SIGPIPE, SIG_IGN);
+    while (!_exit_) {
         client_sockfd = accept(sockfd, (struct sockaddr *) &client_address, &client_len);
-        read(client_sockfd, socket_message, socket_message_len);
-        for(i = 0; i < mpool->numInputs; i++) {
-            sscanf(socket_message, "%lf ", &in[i]);
+        sprintf(log, "mod-fis.c %s slot %i connection stablished to %s", mpool->name, my_slot, inet_ntoa(address.sin_addr));
+        logger(INFO, log);
+        while (client_sockfd >= 0) {
+            request_sz = recv(client_sockfd, request, mpool->numInputs * sizeof(double), 0);
+
+            if (!request_sz) break;
+
+            response = eval_fis(mpool, request);
+
+            send(client_sockfd, response, mpool->numOutputs * sizeof(double), 0);
         }
-
-        out = eval_fis(mpool, in);
-
-        sprintf(log, "<%s> Inputs %.3f, %.3f",mpool->name, in[0], in[1]);
-        logger(LOG, log);
-        for (i = 0; i < mpool->numOutputs; i++) {
-            sprintf(log, "<%s> Output[%i] %.3f", mpool->name, i, out[i]);
-            write(client_sockfd, log, socket_message_len);
-            logger(LOG, log);
-        }
-
-        close(client_sockfd);
     }
 
     pthread_cleanup_pop(0);

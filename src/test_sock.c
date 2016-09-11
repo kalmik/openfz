@@ -6,33 +6,46 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#include "mod-fis.h"
+
 int main( )
 {
-   int sockfd;
-   int len;
-   struct sockaddr_in address;
-   int result;
-   char ch[1024] = "-0.88 -0.5";
+    int _exit_ = 0;
+    int sockfd;
+    int len;
+    struct sockaddr_in address;
+    int result;
 
-   sockfd  = socket(AF_INET, SOCK_STREAM,0);  // criacao do socket
+    double* request;
+    double* response;
+    request = (double*) malloc(sizeof(double)*2);
+    response = (double*) malloc(sizeof(double)*1);
 
-   address.sin_family = AF_INET;
-   address.sin_addr.s_addr = inet_addr("127.0.0.1");
-   address.sin_port = 3000;
-   //strcpy (address.sun_path, "server_socket");
-   len = sizeof(address);
+    sockfd  = socket(AF_INET, SOCK_STREAM,0);  // criacao do socket
 
-   result = connect(sockfd, (struct sockaddr *) &address, len);
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    address.sin_port = 3000;
 
-   if (result == -1)
-   {
-      perror ("Houve erro no cliente");
-      exit(1);
-   }
-  
-  write(sockfd, &ch,1024);
-  read(sockfd, &ch,1024);
-  printf( "Output = %s\n",ch);
-  close(sockfd);
-  exit(0);
+    len = sizeof(address);
+
+    result = connect(sockfd, (struct sockaddr *) &address, len);
+
+    if (result == -1) {
+        perror ("Houve erro no cliente");
+        exit(1);
+    }
+
+    request[0] = -1;
+    request[1] = -1;
+
+    while(!_exit_) {
+        send(sockfd, request, 2* sizeof(double),0);
+        recv(sockfd, response, 2* sizeof(double), 0);
+        printf( "Output = %f\n", response[0]);
+        usleep(100000);
+    }
+
+    close(sockfd);
+    exit(0);
 }

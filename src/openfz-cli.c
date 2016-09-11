@@ -67,6 +67,8 @@ int main()
             _exit_ = 1;
             break;
         }
+
+        add_history(input);
     }
 
     close(sockfd);
