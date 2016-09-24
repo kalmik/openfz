@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "mod-fis.h"
 
@@ -24,7 +25,7 @@ int main( )
     sockfd  = socket(AF_INET, SOCK_STREAM,0);  // criacao do socket
 
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    address.sin_addr.s_addr = inet_addr("192.168.0.26");
     address.sin_port = 3000;
 
     len = sizeof(address);
@@ -36,13 +37,15 @@ int main( )
         exit(1);
     }
 
-    request[0] = -1;
-    request[1] = -1;
 
+    srand((unsigned int)time(NULL));
     while(!_exit_) {
+        request[0] = rand()%1001/1000.0;
+        request[1] = rand()%1001/1000.0;
+
         send(sockfd, request, 2* sizeof(double),0);
         recv(sockfd, response, 2* sizeof(double), 0);
-        printf( "Output = %f\n", response[0]);
+
         usleep(100000);
     }
 
