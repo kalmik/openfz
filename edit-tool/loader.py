@@ -2,7 +2,7 @@
 
 import ConfigParser, os
 import re
-import pickle
+import json
 
 def tuple_to_dict(data):
     return {key: value.replace("'", "") for key, value in data}
@@ -29,6 +29,9 @@ class FuzzyMFS(object):
 
         raw_data = re.sub(r'[\[\]]', '', parts[1])
         self.data = [float(x) for x in raw_data.split(' ')]
+
+    def to_dict(self):
+        return self.__dict__
     
 
 class FuzzyVariable(object):
@@ -36,11 +39,21 @@ class FuzzyVariable(object):
     def __init__(self, conf):
         self.name = conf.get('name')
         self.num_mfs = int(conf.get('nummfs'))
-        self.mfs = []
+        self.functions = []
+        raw_range = re.sub(r'[\[\]]', '', conf.get('range')).split(' ')
+        self.value_range = [float(r) for r in raw_range]
+
         for i in range(self.num_mfs):
             mfs_str = conf.get('mf%s' % str(i+1))
-            self.mfs.append(FuzzyMFS(mfs_str))
+            self.functions.append(FuzzyMFS(mfs_str))
 
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'num_mfs': self.num_mfs,
+            'range': self.value_range,
+            'functions': [mfs.to_dict() for mfs in self.functions]
+        }
 
 class FuzzyRule(object):
     
@@ -49,14 +62,16 @@ class FuzzyRule(object):
         self.result = result
         self.operation = operation
 
+    def to_dict(self):
+        return self.__dict__
 
 class Fuzzy(object):
     
     def __init__(self):
         self.path = None
         self.conf = {}
-        self.input = []
-        self.output = []
+        self.inputs = []
+        self.outputs = []
         self.rules = []
 
     def load(self, buf):
@@ -81,14 +96,14 @@ class Fuzzy(object):
             key = "Input%s" % str(i+1)
             input_tuple = config.items(key)
             input_dict = tuple_to_dict(input_tuple)
-            self.input.append(FuzzyVariable(input_dict))
+            self.inputs.append(FuzzyVariable(input_dict))
 
         num_outputs = int(self.conf.get('numoutputs'))
         for i in range(num_outputs):
             key = "Output%s" % str(i+1)
             output_tuple = config.items(key)
             output_dict = tuple_to_dict(output_tuple)
-            self.output.append(FuzzyVariable(output_dict))
+            self.outputs.append(FuzzyVariable(output_dict))
 
         num_rules = int(self.conf.get('numrules'))
         pattern = r'(\d) (\d), (\d) \(\d\)'
@@ -106,15 +121,19 @@ class Fuzzy(object):
             
             self.rules.append(FuzzyRule(premise, result, operation))
 
-    @classmethod
-    def serialize(cls):
-        serialized_data = {}
+    def to_dict(self):
+        serialized_data = {
+            'path': self.path,
+            'system': self.conf,
+            'inputs': [i.to_dict() for i in self.inputs],
+            'outputs': [o.to_dict() for o in self.outputs],
+            'rules': [r.to_dict() for r in self.rules]
+        }
 
         return serialized_data
     
 
 f = Fuzzy()
 f.load('b7.fis')
-print f.output[0].mfs[0].data
 import pdb
 pdb.set_trace()
