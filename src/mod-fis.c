@@ -16,6 +16,8 @@
 
 #include "mod-fis.h"
 
+#define BASE_PATH "conf/fis/%s"
+
 char* summary (FZ_M_POOL* mpool) {
     char* summ = (char*)malloc(sizeof(char)*REQ_BUFFER_SIZE);
     sprintf(summ,
@@ -33,6 +35,7 @@ char* summary (FZ_M_POOL* mpool) {
 FZ_M_POOL* load_fis (char* cmd)
 {
     char path[LOGGER_BUFFER_SIZE];
+    char full_path[LOGGER_BUFFER_SIZE];
     int argc, i;
     char log[LOGGER_BUFFER_SIZE];
     FILE* fp;
@@ -45,8 +48,8 @@ FZ_M_POOL* load_fis (char* cmd)
         logger(ERR, "usage: loadfis <filename>. type help to see more informations");
         return NULL;
     }
-
-    fp = fopen(path, "r");
+    sprintf(full_path, BASE_PATH, path);
+    fp = fopen(full_path, "r");
     if (!fp) {
         sprintf(log, "%s, no such file", path);
         logger(ERR, log);
@@ -94,6 +97,7 @@ FZ_M_POOL* load_fis (char* cmd)
     logger(LOG, log);
 
     mpool->config = START;
+    mpool->invalid = 0;
 
     return mpool;
 }
@@ -203,6 +207,7 @@ static void cleanup_fis (void* arg) {
     logger(INFO,log);
 
     mpool->config |= DIRTY;
+    mpool->invalid = 1;
 
     free(sockmsg);
     free(mpool);

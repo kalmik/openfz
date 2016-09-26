@@ -1,8 +1,84 @@
 #! /bin/python
 
-import ConfigParser, os
+import ConfigParser
+import os
 import re
 import json
+import socket
+
+from os import listdir
+from os.path import isfile, join
+from datetime import timedelta
+from flask import Flask, jsonify, request, render_template, make_response, current_app
+from functools import update_wrapper
+
+
+def crossdomain(origin=None, methods=None, headers=None,
+                max_age=21600, attach_to_all=True,
+                automatic_options=True):
+    if methods is not None:
+        methods = ', '.join(sorted(x.upper() for x in methods))
+    if headers is not None and not isinstance(headers, basestring):
+        headers = ', '.join(x.upper() for x in headers)
+    if not isinstance(origin, basestring):
+        origin = ', '.join(origin)
+    if isinstance(max_age, timedelta):
+        max_age = max_age.total_seconds()
+
+    def get_methods():
+        if methods is not None:
+            return methods
+
+        options_resp = current_app.make_default_options_response()
+        return options_resp.headers['allow']
+
+    def decorator(f):
+        def wrapped_function(*args, **kwargs):
+            if automatic_options and request.method == 'OPTIONS':
+                resp = current_app.make_default_options_response()
+            else:
+                resp = make_response(f(*args, **kwargs))
+            if not attach_to_all and request.method != 'OPTIONS':
+                return resp
+
+            h = resp.headers
+
+            h['Access-Control-Allow-Origin'] = origin
+            h['Access-Control-Allow-Methods'] = get_methods()
+            h['Access-Control-Max-Age'] = str(max_age)
+            if headers is not None:
+                h['Access-Control-Allow-Headers'] = headers
+            return resp
+
+        f.provide_automatic_options = False
+        return update_wrapper(wrapped_function, f)
+    return decorator
+
+
+app = Flask(__name__)
+
+
+__CONF_FIS_PATH__ = '../conf/fis'
+
+class OpenfzAPI(object):
+    def __init__(self):
+        self.host = '127.0.0.1'
+        self.port = 1337
+        self.sock = None
+        self.buffer_size = 2048
+
+    def connect(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect((self.host, self.port))
+
+    def close(self):
+        self.api('shutdown')
+        self.sock.close()
+
+    def api(self, command):
+        self.sock.send('%s\n' % command)
+        return self.sock.recv(self.buffer_size)
+
 
 def tuple_to_dict(data):
     return {key: value.replace("'", "") for key, value in data}
@@ -75,7 +151,7 @@ class Fuzzy(object):
         self.rules = []
 
     def load(self, buf):
-        if isinstance(buf, str):
+        if isinstance(buf, (str, unicode)):
             self._load_from_file(buf)
         elif isinstance(buf, dict):
             self._load_from_dict(buf)
@@ -84,6 +160,7 @@ class Fuzzy(object):
         pass
 
     def _load_from_file(self, path):
+        print 'vai'
         self.path = path
         config = ConfigParser.RawConfigParser()
         config.read(self.path)
@@ -131,9 +208,79 @@ class Fuzzy(object):
         }
 
         return serialized_data
-    
 
-f = Fuzzy()
-f.load('b7.fis')
-import pdb
-pdb.set_trace()
+
+backend = OpenfzAPI()
+
+
+@app.route('/list', methods=['GET'])
+@crossdomain(origin='*')
+def index():
+    path = __CONF_FIS_PATH__
+    files = [f for f in listdir(path) if isfile(join(path, f)) and '.fis' in f]
+    
+    return jsonify(files)
+
+    
+@app.route('/<path>.fis', methods=['GET'])
+@crossdomain(origin='*')
+def load(path):
+    f = Fuzzy()
+    f.load('%s/%s.fis' % (__CONF_FIS_PATH__, path))
+    return jsonify(f.to_dict())
+
+
+@app.route('/save', methods=['POST'])
+@crossdomain(origin='*')
+def create_task():
+    if not request.json:
+        abort(400)
+    fis_file = render_template('template.fis', fis=request.json)
+    with open('%s/%s.fis' % (__CONF_FIS_PATH__, request.json['system']['name']), 'w') as f:
+        f.write(fis_file)
+        f.close()
+    return jsonify('success', 201)
+    import pdb; pdb.set_trace()
+
+
+@app.route('/load/<name>', methods=['PUT'])
+@crossdomain(origin='*')
+def loadfis(name):
+    backend.connect()
+    res = backend.api('loadfis %s' % name)
+    backend.close()
+    return res
+
+
+@app.route('/unload/<slot>', methods=['PUT'])
+@crossdomain(origin='*')
+def unloadfis(slot):
+    backend.connect()
+    res = backend.api('unloadfis %s' % slot)
+    backend.close()
+    return res
+
+
+@app.route('/summary', methods=['GET'])
+@crossdomain(origin='*')
+def summary():
+    backend.connect()
+    res = backend.api('summary')
+    backend.close()
+    state = res.split('\n')
+    state = state[:-1]
+
+    serialized_data = []
+    for s in state:
+        details = s.split(' ')
+        serialized_data.append({
+            'slot': details[0],
+            'port': details[1],
+            'name': details[2]
+        })
+        
+    return jsonify(serialized_data)
+
+
+if __name__ == '__main__':
+  app.run(debug=True)

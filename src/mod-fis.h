@@ -23,6 +23,7 @@ typedef struct fz_m_pool
 	int slot;
 	int port;
 	unsigned char config;
+    unsigned char invalid;
 
 } FZ_M_POOL;
 

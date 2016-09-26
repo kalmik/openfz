@@ -1,0 +1,27 @@
+[System]
+Name='{{ fis.system.name }}'
+Type='{{ fis.system.type }}'
+Version={{ fis.system.version }}
+NumInputs={{ fis.system.numinputs }}
+NumOutputs={{ fis.system.numoutputs  }}
+NumRules={{ fis.system.numrules }}
+AndMethod='{{ fis.system.andmethod }}'
+OrMethod='{{ fis.system.ormethod }}'
+ImpMethod='{{ fis.system.impmethod }}'
+AggMethod='{{ fis.system.aggmethod }}'
+DefuzzMethod='{{ fis.system.defuzzmethod }}'
+{% for input in fis.inputs %}
+[Input{{loop.index}}]
+Name='{{ input.name }}'
+Range=[{{ input.range|join(' ')}}]
+NumMFs=7{% for mfs in input.functions %}
+MF{{loop.index}}='{{ mfs.name }}':'{{ mfs.type }}',[{{ mfs.data|join(' ') }}]{% endfor %}
+{% endfor %}{% for output in fis.outputs %}
+[Output{{loop.index}}]
+Name='{{ output.name }}'
+Range=[{{ output.range|join(' ')}}]
+NumMFs=7{% for mfs in output.functions %}
+MF{{loop.index}}='{{ mfs.name }}':'{{ mfs.type }}',[{{ mfs.data|join(' ') }}]{% endfor %}{% endfor %}
+
+[Rules]{% for rule in fis.rules %}
+{{ rule.premise|join(' ')}}, {{rule.result|join(' ')}} (1) : {{ rule.operation }}{% endfor %}

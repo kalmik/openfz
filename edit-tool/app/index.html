@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css" >
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="/css/bootstrap-theme.min.css">
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="/js/jquery-2.1.4.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <title>Fuzzy - Editor</title>
+</head>
+<body>
+
+
+
+<section class="container-fluid">
+
+    <div class="page-header">
+        <h1>Fuzzy webtool editor <small>Sergio Filipe</small></h1>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <div class="panel-title">
+                <button class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Open a fis file">
+                    <i class="glyphicon glyphicon-plus"></i>
+                </button>
+                <span class="dropdown">
+                    <button class="btn btn-default" id="openfile" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="glyphicon glyphicon-folder-open">&nbsp;</i>
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu panel panel-default" aria-labelledby="dLabel">
+                        <div class="panel-body">
+                        </div>
+                        <div class="panel-footer">
+                            <a href="javascript:" >Upload a file</a>
+                        </div>
+                    </ul>
+                </span>
+                <button class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Open a fis file">
+                    <i class="glyphicon glyphicon-floppy-disk"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <section class="row">
+        <section class="col-md-6" id="inputs-pane">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Inputs</h3>
+                </div>
+                <div class="panel-body">
+                    Panel content
+                </div>
+            </div>
+        </section>
+        <section class="col-md-6" id="outputs-pane">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Outputs</h3>
+                </div>
+                <div class="panel-body">
+                    Panel content
+                </div>
+            </div>
+        </section>
+
+    </section>
+
+    <section class="row">
+            <section class="col-md-12" id="rules-pane">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Rules</h3>
+                    </div>
+                    <div class="panel-body">
+                        Panel content
+                    </div>
+                </div>
+            </section>
+    </section>
+
+</section>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

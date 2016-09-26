@@ -26,8 +26,8 @@ int main(int argc, char* argv[])
     
     char* input;
     char log[LOGGER_BUFFER_SIZE];
-    struct request_payload request;
-    struct request_payload response;
+    char request[REQ_BUFFER_SIZE];
+    char response[REQ_BUFFER_SIZE];
 
     int opt;
     char host[15] = "127.0.0.1";
@@ -68,19 +68,14 @@ int main(int argc, char* argv[])
         prompt();
         input = readline(NULL);
         if(strcmp(input, "")==0) continue;
-        request.status = 200;
-        sprintf(request.msg, input);
-        send(sockfd, &request, sizeof(struct request_payload), 0);
-        recv(sockfd, &response, sizeof(struct request_payload), 0);
-        sprintf(log, "Response status %i\n", response.status);
-        if(response.status != 200){
-            logger(WARN, log);
-            continue;
-        }
-        logger(LOG, log);
-        sprintf(log, "%s\n", response.msg);
+        sprintf(request, input);
+        sprintf(log, "%s\n", request);
         logger(INFO, log);
-        if (strcmp(response.msg, "END") == 0){
+        send(sockfd, request, REQ_BUFFER_SIZE, 0);
+        recv(sockfd, response, REQ_BUFFER_SIZE, 0);
+        sprintf(log, "%s\n", response);
+        logger(INFO, log);
+        if (strcmp(response, "END") == 0){
             _exit_ = 1;
             break;
         }

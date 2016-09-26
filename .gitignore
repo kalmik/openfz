@@ -4,3 +4,5 @@ dist/bin/*
 *.log
 .idea/
 CMakeLists.txt
+*.pyc
+*.swp
