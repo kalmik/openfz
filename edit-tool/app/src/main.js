@@ -1,1 +1,1 @@
-import Mfs from './components/mfs.jsx'
+import Mfs from './components/input.jsx'
