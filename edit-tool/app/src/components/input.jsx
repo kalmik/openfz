@@ -3,9 +3,9 @@ import ReactDOM from 'react-dom';
 
 import ReactHighcharts from 'react-highcharts';
 
-import { Button, Tabs, Tab } from 'react-bootstrap';
+import { Button, Tabs, Tab, Row, Col, FormControl, ControlLabel } from 'react-bootstrap';
 
-import fis from './fixture' 
+import fis from './fixture'
 class Input extends React.Component {
 
   constructor(...args) {
@@ -46,7 +46,7 @@ class Input extends React.Component {
       },
       xAxis: {
         min: +this.state.range[0],
-        max: +this.state.range[1]  
+        max: +this.state.range[1]
       },
       yAxis: {
         min: 0,
@@ -70,7 +70,35 @@ class Input extends React.Component {
         <Tabs defaultActiveKey={0} id="uncontrolled-tab-example">
         {
           this.state.functions.map( (el, i) => {
-            return <Tab eventKey={i} key={"input"+i} title={el.name}>{el.name}</Tab>
+            return (
+                <Tab eventKey={i} key={"input"+i} title={el.name}>
+                  <Row style={{marginTop:10}}>
+                      <Col md={4} >
+                        <ControlLabel>Type</ControlLabel>
+                        <FormControl componentClass="select" placeholder="select">
+                          <option value="select">Trimf</option>
+                          <option value="other">Trapmf</option>
+                        </FormControl>
+                      </Col>
+                      <Col md={4}>
+                        <ControlLabel>Value</ControlLabel>
+                        <FormControl
+                          type="text"
+                          value={el.data.join(', ')}
+                          placeholder="Enter text"
+                          onChange={this.handleChange} />
+                      </Col>
+                      <Col md={4}>
+                        <ControlLabel>Range</ControlLabel>
+                        <FormControl
+                          type="text"
+                          value={this.state.range.join(', ')}
+                          placeholder="Enter text"
+                          onChange={this.handleChange} />
+                      </Col>
+                  </Row>
+                </Tab>
+              )
           })
         }
         </Tabs>
