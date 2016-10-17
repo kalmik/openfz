@@ -5,15 +5,14 @@
 #include <sys/types.h>
 #include <string.h>
 #include <mosquitto.h>
-#include <exception>
-#include <iostream>
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <time.h>
-
+#include <iostream>
+#include <exception>
 
 
 #include "quanser.h"
@@ -44,7 +43,7 @@ string vhusn = vhost + ":" + usn;
 const char *username = vhusn.c_str();
 string pwd = "password";
 const char *password = pwd.c_str();
-string tpc_tx = "fuzzy/tx";
+string tpc_tx = "simutank/tx";
 const char *topic_tx = tpc_tx.c_str();
 string tpc_rx = "fuzzy/rx";
 const char *topic_rx = tpc_rx.c_str();
@@ -140,7 +139,7 @@ double saturate(double mv, double max, double min) {
 
 void *fuzzy(void *arg) {
 
-     int _exit_ = 0;
+    int _exit_ = 0;
     int sockfd;
     int len;
     struct sockaddr_in address;
@@ -151,9 +150,10 @@ void *fuzzy(void *arg) {
 
     // Fis* f = new Fis("fuzzy-pi-ga.fis");
 
-    double* out = (double*)malloc(sizeof(double)*2);
-    double* in = (double*)malloc(sizeof(double));
+    double* out = (double*)malloc(sizeof(double));
+    double* in = (double*)malloc(sizeof(double)*2);
 
+    printf("Starting client\n");
     double start, finish, elapsed;
     double err = 0, err_old = 0;
     double mv_old;
@@ -162,7 +162,7 @@ void *fuzzy(void *arg) {
 
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = inet_addr("10.13.100.161");
-    address.sin_port = 3000;
+    address.sin_port = 3001;
 
     len = sizeof(address);
 
@@ -257,8 +257,8 @@ void onMessage(struct mosquitto *mosq, void *userdata, const struct mosquitto_me
 
 void start() {
     printf("Start\n");
-    server = new Quanser("10.13.99.69", 20081);
-    //server = new Quanser("10.13.100.135", 20081);
+    //server = new Quanser("10.13.99.69", 20081);
+    server = new Quanser("10.13.100.158", 20081);
     run = 1;
 }
 void stop() {
