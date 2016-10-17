@@ -8,9 +8,19 @@
 #include <exception>
 #include <iostream>
 #include <pthread.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <time.h>
+
+
+
 #include "quanser.h"
 #include "timer.h"
-#include "fis.h"
+#include "mod-fis.h"
+
+
 
 using namespace std;
 
@@ -130,16 +140,41 @@ double saturate(double mv, double max, double min) {
 
 void *fuzzy(void *arg) {
 
-    Fis* f = new Fis("fuzzy-pi-ga.fis");
+     int _exit_ = 0;
+    int sockfd;
+    int len;
+    struct sockaddr_in address;
+    int result;
 
-    double* out = (double*)malloc(sizeof(double)*f->numOutputs);
-    double* in = (double*)malloc(sizeof(double)*f->numInputs);
+    double* request;
+    double* response;
+
+    // Fis* f = new Fis("fuzzy-pi-ga.fis");
+
+    double* out = (double*)malloc(sizeof(double)*2);
+    double* in = (double*)malloc(sizeof(double));
 
     double start, finish, elapsed;
     double err = 0, err_old = 0;
     double mv_old;
+
+    sockfd  = socket(AF_INET, SOCK_STREAM,0);  // criacao do socket
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = inet_addr("10.13.100.161");
+    address.sin_port = 3000;
+
+    len = sizeof(address);
+
+    result = connect(sockfd, (struct sockaddr *) &address, len);
+
+    if (result == -1) {
+        perror ("Houve erro no cliente");
+        exit(1);
+    }
+
     //sp = 15;
-    //server = new Quanser("10.13.100.135", 20081);                                                
+    //server = new Quanser("10.13.100.135", 20081);
     //run = 1;
 
     while(1) {
@@ -159,10 +194,12 @@ void *fuzzy(void *arg) {
 
         in[1] = ((err - err_old) / 0.1);
         //in[1] = normalize(in[1], sp);
-        in[1] = saturate(in[1], 10, -10);
+        // in[1] = saturate(in[1], 10, -10);
 
+        send(sockfd, in, 2* sizeof(double),0);
+        recv(sockfd, out, 1* sizeof(double), 0);
 
-        out = f->Evalfis(in);
+        // out = f->Evalfis(in);
 
         // mv_old = mv;
 
