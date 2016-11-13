@@ -8,9 +8,9 @@
 #include <arpa/inet.h>
 #include <signal.h>
 
-#include "mod-fis.h"
-#include "logger.h"
-#include "request.h"
+#include "mod/mod-fis/include/mod-fis.h"
+#include "include/logger.h"
+#include "include/request.h"
 
 #define MAX_CONNECTION 10
 #define CONNECTION_TIMEOUT 60

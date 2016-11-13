@@ -14,7 +14,7 @@ void next_line(FILE* fp)
     foundline = fscanf(fp, "%*s\n");
 }
 
-void get_type(FILE* fp, char * type)
+unsigned char get_type(FILE* fp, char * type)
 {
     int foundline  = 0;
     char r[10];
@@ -26,19 +26,14 @@ void get_type(FILE* fp, char * type)
 
     strcpy(type, r);
 
-}
-
-void  get_name(FILE* fp, char * name)
-{
-    int foundline  = 0;
-    char r[100];
-
-    while(!foundline){
-        foundline = fscanf(fp, "Name=\'%[aA-zZ 0-9]+\'", r);
-        if(!foundline) next_line(fp);
+    if(strcmp(r, "mamdani") == 0) {
+        return MAMDANI_T;
     }
 
-    strcpy(name, r);
+    if(strcmp(r, "sugeno") == 0) {
+        return SUGENO_T;
+    }
+
 }
 
 int get_numInputs(FILE* fp)
@@ -105,7 +100,7 @@ float* pack_io(FILE* fp, int* sz)
     float* fullStack;
 
     stackL[offsetL++] = tmp;
-    while((tmp--)>0){
+    for(tmp; tmp>0; tmp--){
         foundline = fscanf(fp, "MF%*i=\'%[aA-zZ]\':\'%[a-z]\',[%f %f %f %f]\n", name, type, &a, &b, &c, &d);
         if(foundline != 6){ /* trimf case, read only 3 floats*/
             next_line(fp);

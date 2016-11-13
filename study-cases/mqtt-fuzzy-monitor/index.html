@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+</head>
+<style type="text/css">
+    button{
+        position: relative;
+        width: 100px;
+        height: 30px;
+        line-height: 30px;
+        margin: 10px;
+    }
+    #controls {
+        display: block;
+    }
+</style>
+<body>
+
+<section id="controls">
+
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+    <div>
+        <form id="param" action="#">
+            <label for="#setpoint">Setpoint: </label>
+            <input id="setpoint" type="number" value="0"  step="0.01"/>
+            <label for="#setpoint">Kp: </label>
+            <input id="kp" type="number" value="1"   step="0.01"/>
+            <label for="#setpoint">Ki: </label>
+            <input id="ki" type="number"  value="1"  step="0.01"/>
+            <label for="#setpoint">Kd: </label>
+            <input id="kd" type="number"  value="1"  step="0.01"/>
+            <br>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+</section>
+<div id="container" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.min.js"></script>
+<script src="./browserMqtt.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="chart.js"></script>
+<script type="text/javascript">
+
+$(function () {
+
+        var chart = null;
+
+        var client = mqtt.connect(
+            "ws://10.13.100.161",
+            {
+                port: 3000,
+            }
+        ); // you add a ws:// url here
+
+        client.subscribe("fuzzy/tx");
+
+        client.on("message", function(topic, payload) {
+            var jsonPart = payload.toString().split('\0')[0];
+            try{
+                var message = JSON.parse(jsonPart);
+                 if(chart) {
+                    var input1 = chart.series[0];
+                    var input2 = chart.series[1];
+                    var output = chart.series[2];
+		    var err = chart.series[3];
+
+		    var errValue = (+message.output)-(+message.input2)
+
+                    var time = (new Date()).getTime();
+                    input1.addPoint([time, +message.input1], true, true);
+                    input2.addPoint([time, +message.input2], true, true);
+                    output.addPoint([time, +message.output], true, true);
+                    err.addPoint([time, errValue], true, true);
+                }
+            } catch(e) {
+                message = payload;
+            }
+            // console.log(message);
+        });
+
+        client.publish("fuzzy/rx", "hello world!");
+
+        $("#start").click(function(){
+            client.publish("fuzzy/start", "1");
+        });
+        $("#stop").click(function(){
+            client.publish("fuzzy/stop", "1");
+        });
+
+        $("#param").submit(function() {
+            console.log("vai");
+            client.publish("fuzzy/sp", $("#setpoint").val().toString()||"0");
+            client.publish("fuzzy/kp", $("#kp").val().toString()||"0");
+            client.publish("fuzzy/ki",  $("#ki").val().toString()||"0");
+            client.publish("fuzzy/kd", $("#kd").val().toString()||"0");
+        })
+
+    chart =  SetChart();
+
+});
+
+</script>
+
+</body>
+</html>

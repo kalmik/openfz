@@ -1,0 +1,46 @@
+[System]
+Name=''
+Type='sugeno'
+Version=2.0
+NumInputs=2
+NumOutputs=1
+NumRules=9
+AndMethod='min'
+OrMethod='max'
+ImpMethod='min'
+AggMethod='max'
+DefuzzMethod='wtaver'
+
+[Input1]
+Name='Entrada_0'
+Range=[-30 30]
+NumMFs=3
+MF1='EN':'trapmf',[-31 -30 -5 0]
+MF2='ZZ':'trimf',[-5 0 5]
+MF3='EP':'trapmf',[0 5 30 31]
+
+[Input2]
+Name='Entrada_1'
+Range=[-30 30]
+NumMFs=3
+MF1='EDN':'trapmf',[-31 -30 -5 0]
+MF2='EDZ':'trimf',[-5 0 5]
+MF3='EDP':'trapmf',[0 5 30 31]
+
+[Output1]
+Name='Saída_0'
+Range=[0 1]
+NumMFs=3
+MF1='P1':'linear',[4 2 0]
+MF2='P2':'linear',[2 1 0]
+
+[Rules]
+1 1, 1 (1) : 1
+1 2, 1 (1) : 1
+1 3, 2 (1) : 1
+2 1, 2 (1) : 1
+2 2, 2 (1) : 1
+2 3, 2 (1) : 1
+3 1, 2 (1) : 1
+3 2, 1 (1) : 1
+3 3, 1 (1) : 1

@@ -7,3 +7,5 @@ CMakeLists.txt
 *.pyc
 *.swp
 node_modules/
+study-cases/mqtt-server/node_modules
+edit-tool/static/node_modules

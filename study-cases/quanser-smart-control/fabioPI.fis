@@ -1,0 +1,55 @@
+[System]
+Name='fabioPD5'
+Type='sugeno'
+Version=2.0
+NumInputs=2
+NumOutputs=1
+NumRules=15
+AndMethod='prod'
+OrMethod='probor'
+ImpMethod='prod'
+AggMethod='sum'
+DefuzzMethod='wtaver'
+
+[Input1]
+Name='erro'
+Range=[-40 40]
+NumMFs=5
+MF1='NG':'trimf',[-3000 -11 -7]
+MF2='Z':'trimf',[-1.5 2 4.5]
+MF3='NP':'trimf',[-10 -4 0]
+MF4='PP':'trimf',[2 10 15]
+MF5='PG':'trimf',[10 15 3000]
+
+[Input2]
+Name='variacaoErro'
+Range=[-1 1]
+NumMFs=3
+MF1='Negativa':'trimf',[-300 -0.5 0]
+MF2='Zero':'trimf',[-0.3 0 0.3]
+MF3='Positiva':'trimf',[0 0.5 300]
+
+[Output1]
+Name='tensao'
+Range=[0 1]
+NumMFs=3
+MF1='P':'linear',[0.01 0.3 0]
+MF2='M':'linear',[0.02 0.2 0]
+MF3='G':'linear',[0.01 0.3 0]
+
+[Rules]
+1 1, 1 (1) : 1
+1 2, 1 (1) : 1
+1 3, 1 (1) : 1
+3 1, 2 (1) : 1
+3 2, 2 (1) : 1
+3 3, 2 (1) : 1
+2 1, 3 (1) : 1
+2 2, 3 (1) : 1
+2 3, 3 (1) : 1
+4 1, 2 (1) : 1
+4 2, 2 (1) : 1
+4 3, 2 (1) : 1
+5 1, 1 (1) : 1
+5 2, 1 (1) : 1
+5 3, 1 (1) : 1

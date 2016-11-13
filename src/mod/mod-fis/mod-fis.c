@@ -8,13 +8,13 @@
 #include <arpa/inet.h>
 #include <signal.h>
 
-#include "fuzzy-loader.h"
-#include "fuzzy-core.h"
+#include "include/fuzzy-loader.h"
+#include "include/fuzzy-core.h"
 
-#include "logger.h"
-#include "request.h"
+#include "../../include/logger.h"
+#include "../../include/request.h"
 
-#include "mod-fis.h"
+#include "include/mod-fis.h"
 
 #define BASE_PATH "conf/fis/%s"
 
