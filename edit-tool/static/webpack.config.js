@@ -2,8 +2,14 @@ var path = require('path');
 var webpack = require('webpack');
 
 module.exports = {
-  entry: './src/main.js',
-  output: { path: __dirname, filename: './dist/js/bundle.js' },
+  entry: {
+    loader: './src/main.jsx',
+    openfzUi: './src/openfz-ui.jsx'
+  },
+  output: {
+    path: path.join(__dirname, 'dist/js'), 
+    filename: 'bundle.[name].js' 
+  },
   module: {
     loaders: [{
       test: /.jsx?$/,

@@ -6,12 +6,12 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="/dist/css/bootstrap.min.css" >
+    <link rel="stylesheet" href="/static/dist/css/bootstrap.min.css" >
     <!-- Optional theme -->
-    <link rel="stylesheet" href="/dist/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="/static/dist/css/bootstrap-theme.min.css">
     <!-- Latest compiled and minified JavaScript -->
-    <script src="/dist/js/jquery-2.1.4.min.js"></script>
-    <script src="/dist/js/bootstrap.min.js"></script>
+    <script src="/static/dist/js/jquery-2.1.4.min.js"></script>
+    <script src="/static/dist/js/bootstrap.min.js"></script>
     <title>Fuzzy - Editor</title>
 </head>
 <body>
@@ -52,44 +52,9 @@
 
     <hr>
 
-    <section class="row">
-        <section class="col-md-6" id="input-pane">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Inputs</h3>
-                </div>
-                <div class="panel-body">
-                </div>
-            </div>
-        </section>
-        <section class="col-md-6" id="outputs-pane">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Outputs</h3>
-                </div>
-                <div class="panel-body">
-                    Panel content
-                </div>
-            </div>
-        </section>
-
+    <section id="app">
     </section>
 
-    <section class="row">
-            <section class="col-md-12" id="rules-pane">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">Rules</h3>
-                    </div>
-                    <div class="panel-body">
-                        Panel content
-                    </div>
-                </div>
-            </section>
-    </section>
-
-</section>
-
-<script src="/dist/js/bundle.js"></script>
+<script src="/static/dist/js/bundle.loader.js"></script>
 </body>
 </html>
