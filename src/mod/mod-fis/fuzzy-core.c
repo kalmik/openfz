@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "fuzzy-core.h"
+#include "include/fuzzy-core.h"
 
 float max(float _a, float _b){
 	return _a > _b ? _a : _b;

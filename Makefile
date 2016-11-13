@@ -28,13 +28,13 @@ daemon: $(DEPS)
 	$(BIN)/openfz -d &
 
 fuzzy-loader:
-	$(CC) -c $(SRC)/fuzzy-loader.c -o $(DIST)/fuzzy-loader.o
+	$(CC) -c $(SRC)/mod/mod-fis/fuzzy-loader.c -o $(DIST)/fuzzy-loader.o
 
 fuzzy-core:
-	$(CC) -c $(SRC)/fuzzy-core.c -o $(DIST)/fuzzy-core.o
+	$(CC) -c $(SRC)/mod/mod-fis/fuzzy-core.c -o $(DIST)/fuzzy-core.o
 
 mod-fis:
-	$(CC) -c $(SRC)/mod-fis.c -o $(DIST)/mod-fis.o
+	$(CC) -c $(SRC)/mod/mod-fis/mod-fis.c -o $(DIST)/mod-fis.o
 
 logger:
 	$(CC) -c $(SRC)/logger.c -o $(DIST)/logger.o

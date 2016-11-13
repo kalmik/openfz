@@ -5,3 +5,5 @@ dist/bin/*
 .idea/
 CMakeLists.txt
 study-cases/mqtt-server/node_modules
+edit-tool/static/node_modules
+*.pyc

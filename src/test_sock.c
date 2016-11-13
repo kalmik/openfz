@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "mod-fis.h"
+#include "mod/mod-fis/include/mod-fis.h"
 
 int main( )
 {
@@ -25,7 +25,7 @@ int main( )
     sockfd  = socket(AF_INET, SOCK_STREAM,0);  // criacao do socket
 
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr("10.13.100.161");
+    address.sin_addr.s_addr = inet_addr("127.0.0.1");
     address.sin_port = 3000;
 
     len = sizeof(address);

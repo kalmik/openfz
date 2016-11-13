@@ -10,8 +10,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <getopt.h>
-#include "logger.h"
-#include "request.h"
+#include "include/logger.h"
+#include "include/request.h"
 
 void sigint_handler (int signo);
 unsigned char _exit_ = 0;
