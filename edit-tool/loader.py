@@ -51,7 +51,8 @@ def loadfis(name):
     backend.connect()
     res = backend.api('loadfis %s' % name)
     backend.close()
-    return res
+    status = res.strip('\0') == 'Ok'
+    return jsonify(status)
 
 
 @app.route('/unload/<slot>', methods=['PUT'])
@@ -59,7 +60,8 @@ def unloadfis(slot):
     backend.connect()
     res = backend.api('unloadfis %s' % slot)
     backend.close()
-    return res
+    status = res.strip('\0') == 'Ok'
+    return jsonify(status)
 
 
 @app.route('/summary', methods=['GET'])
@@ -76,11 +78,13 @@ def summary():
         serialized_data.append({
             'slot': details[0],
             'port': details[1],
-            'name': details[2]
+            'name': details[2],
+            'type': details[3],
+            'client': details[4]
         })
         
     return jsonify(serialized_data)
 
 
 if __name__ == '__main__':
-  app.run(debug=True)
+  app.run(debug=True, host='0.0.0.0')

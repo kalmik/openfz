@@ -205,10 +205,11 @@ void* work (void* args)
                     if (!loaddedfis[it].mpool) continue;
                     if (loaddedfis[it].mpool->invalid) continue;
 
-                    sprintf(logaux, "%i %i %s %s\n", loaddedfis[it].mpool->slot,
+                    sprintf(logaux, "%i %i %s %s %s\n", loaddedfis[it].mpool->slot,
                            loaddedfis[it].mpool->port,
                            loaddedfis[it].mpool->name,
-                           loaddedfis[it].mpool->type_name);
+                           loaddedfis[it].mpool->type_name,
+                           loaddedfis[it].mpool->client_inet4);
                     strcat(log, logaux);
                 }
                 sprintf(response, log);

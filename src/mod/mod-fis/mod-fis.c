@@ -42,7 +42,7 @@ FZ_M_POOL* load_fis (char* cmd)
 
     FZ_M_POOL* mpool;
     mpool = (struct fz_m_pool*) malloc(sizeof(struct fz_m_pool));
-
+    sprintf(mpool->client_inet4, "");
     argc = sscanf(cmd, "%*s %s", path);
     if (argc < 1) {
         logger(ERR, "usage: loadfis <filename>. type help to see more informations");
@@ -291,6 +291,7 @@ void* runtime (void* arg)
         client_sockfd = accept(sockfd, (struct sockaddr *) &client_address, &client_len);
         sprintf(log, "mod-fis.c %s slot %i connection stablished to %s", mpool->name, my_slot, inet_ntoa(address.sin_addr));
         logger(INFO, log);
+        sprintf(mpool->client_inet4, inet_ntoa(client_address.sin_addr));
         while (client_sockfd >= 0) {
             request_sz = recv(client_sockfd, request, mpool->numInputs * sizeof(double), 0);
 
@@ -300,6 +301,7 @@ void* runtime (void* arg)
 
             send(client_sockfd, response, mpool->numOutputs * sizeof(double), 0);
         }
+        sprintf(mpool->client_inet4, "");
     }
 
     pthread_cleanup_pop(0);

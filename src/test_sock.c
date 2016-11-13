@@ -40,12 +40,12 @@ int main( )
 
     srand((unsigned int)time(NULL));
     while(!_exit_) {
-        request[0] = rand()%1001/100.0;
-        request[1] = rand()%1001/100.0;
+        request[0] = rand()%1001/1000.0;
+        request[1] = rand()%1001/1000.0;
 
         send(sockfd, request, 2* sizeof(double),0);
-        recv(sockfd, response, 2* sizeof(double), 0);
-	printf("%f\n", response[1]);
+        recv(sockfd, response, 1* sizeof(double), 0);
+    	printf("%f\t%f\t%f\n", request[0], request[1], response[0]);
 
         usleep(100000);
     }

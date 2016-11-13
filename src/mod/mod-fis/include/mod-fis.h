@@ -24,6 +24,7 @@ typedef struct fz_m_pool
 	int port;
 	unsigned char config;
     unsigned char invalid;
+	char client_inet4[15];
 
 } FZ_M_POOL;
 
